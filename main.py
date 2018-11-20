@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 
 from loaders.loader import ProteinImageDataset
 from models.resnet import PretrainedResNet
+from utils.logger import Logger
 
 INITIAL_LR = 0.00002
 BATCH_SIZE = 16
@@ -59,22 +60,19 @@ def main():
 	loss_func = nn.MultiLabelSoftMarginLoss(weight=train_dataset.class_weights).cuda()
 	optimizer = torch.optim.Adam(model.parameters(), lr=INITIAL_LR)
 
+	logger = Logger()
 	max_score = 0
-	dt = datetime.datetime.now().strftime("%m%d_%H%M")
-	save_path = os.path.join("saves", dt)
-	if not os.path.isdir(save_path):
-		os.makedirs(save_path)
 
 	for epoch in range(EPOCHS):
 		print("Epoch {}".format(epoch + 1))
 		train(model, train_loader, loss_func, optimizer)
 		score = evaluate(model, val_loader, loss_func)
 		if score > max_score:
-			save_model(model, epoch, save_path)
+			logger.save_model(model, epoch)
 			max_score = score
 
 	test_results = test(model, test_loader)
-	write_test_results(test_results, train_dataset.base_path, save_path)
+	logger.write_test_results(test_results, test_dataset.test_ids)
 
 
 def train(model, train_loader, loss_func, optimizer):
@@ -170,25 +168,6 @@ def test(model, test_loader):
 			preds.append((frame_id, pred))
 
 	return preds
-
-def write_test_results(results, data_path, save_path):
-	out_fn = os.path.join(save_path, "test_results.csv")
-	with open(os.path.join(data_path, 'sample_submission.csv'), 'r') as f:
-		ids = list(csv.reader(f))[1:]
-		ids = [row[0] for row in ids]
-	results_lookup = {r[0]:r[1] for r in results}
-	with open(out_fn, "w") as f:
-		csvwriter = csv.writer(f)
-		csvwriter.writerow(("Id", "Predicted"))
-		for frame_id in ids:
-			pred = results_lookup[frame_id]
-			pred = [str(i) for i in pred]
-			csvwriter.writerow((frame_id, " ".join(pred)))
-	print("Results written to:", out_fn)
-
-def save_model(model, epoch, save_path):
-	fn = os.path.join(save_path, "save_{:02d}.pth".format(epoch))
-	torch.save(model.state_dict(), fn)
 
 if __name__ == "__main__":
 	main()

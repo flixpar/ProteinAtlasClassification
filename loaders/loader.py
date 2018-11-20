@@ -54,6 +54,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 				lines = list(csv.reader(f))[1:]
 				test_ids = [line[0] for line in lines]
 			self.data = [(i, None) for i in test_ids]
+			self.test_ids = test_ids
 	
 		else:
 			raise Exception("Invalid dataset split.")
