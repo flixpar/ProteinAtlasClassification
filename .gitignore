@@ -1,4 +1,5 @@
 *.csv
-tests/
 __pycache__/
 .ipynb_checkpoints
+saves/
+.vscode/

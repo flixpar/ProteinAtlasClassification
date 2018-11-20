@@ -12,17 +12,17 @@ from PIL import Image
 
 class ProteinImageDataset(torch.utils.data.Dataset):
 
-	def __init__(self, split="train", transforms=tfms.ToTensor(), image_channels="g", debug=False):
+	def __init__(self, split="train", transforms=tfms.ToTensor(), channels="g", debug=False):
 		self.split = split
 		self.transforms = transforms
-		self.image_channels = image_channels
+		self.image_channels = channels
 		self.debug = debug
 		self.n_classes = 28
 		self.base_path = "/home/felix/projects/class/deeplearning/final/data/"
 		self.split_folder = os.path.join(self.base_path, "test" if self.split=="test" else "train")
 
 		# check for valid image mode
-		if not (set(image_channels) <= set("rgby")):
+		if not (set(self.image_channels) <= set("rgby")):
 			raise ValueError("Invalid image channels selection.")
 
 		# split the training set into training and validation

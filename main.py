@@ -26,7 +26,7 @@ from models.resnet import PretrainedResNet
 
 INITIAL_LR = 0.00002
 BATCH_SIZE = 16
-EPOCHS     = 1
+EPOCHS     = 30
 
 def main():
 
@@ -44,9 +44,9 @@ def main():
 	])
 
 	# datasets
-	train_dataset = ProteinImageDataset(split="train", transforms=train_transforms, debug=True)
-	val_dataset   = ProteinImageDataset(split="val",   transforms=test_transforms,  debug=True)
-	test_dataset  = ProteinImageDataset(split="test",  transforms=test_transforms,  debug=True)
+	train_dataset = ProteinImageDataset(split="train", transforms=train_transforms, channels="g", debug=False)
+	val_dataset   = ProteinImageDataset(split="val",   transforms=test_transforms,  channels="g", debug=False)
+	test_dataset  = ProteinImageDataset(split="test",  transforms=test_transforms,  channels="g", debug=False)
 
 	# dataloaders
 	train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=True,  batch_size=BATCH_SIZE, num_workers=12, pin_memory=True)
@@ -59,14 +59,22 @@ def main():
 	loss_func = nn.MultiLabelSoftMarginLoss(weight=train_dataset.class_weights).cuda()
 	optimizer = torch.optim.Adam(model.parameters(), lr=INITIAL_LR)
 
+	max_score = 0
+	dt = datetime.datetime.now().strftime("%m%d_%H%M")
+	save_path = os.path.join("saves", dt)
+	if not os.path.isdir(save_path):
+		os.makedirs(save_path)
+
 	for epoch in range(EPOCHS):
 		print("Epoch {}".format(epoch + 1))
 		train(model, train_loader, loss_func, optimizer)
-		evaluate(model, val_loader, loss_func)
-		print()
+		score = evaluate(model, val_loader, loss_func)
+		if score > max_score:
+			save_model(model, epoch, save_path)
+			max_score = score
 
 	test_results = test(model, test_loader)
-	write_test_results(test_results, train_dataset.base_path)
+	write_test_results(test_results, train_dataset.base_path, save_path)
 
 
 def train(model, train_loader, loss_func, optimizer):
@@ -126,13 +134,18 @@ def evaluate(model, val_loader, loss_func):
 
 	acc = metrics.accuracy_score(targets, preds)
 	f1 = metrics.f1_score(targets, preds, average="macro")
+	f1_perclass = metrics.f1_score(targets, preds, average=None)
 	loss = np.mean(losses)
 
+	print()
 	print("Eval")
 	print("Evaluation loss:", loss)
-	print("Evaluation accuracy", acc)
-	print("Evaluation score", f1)
+	print("Evaluation accuracy:", acc)
+	print("Evaluation score:", f1)
+	print("Per-Class F1:", f1_perclass)
+	print()
 
+	return f1
 
 def test(model, test_loader):
 	model.eval()
@@ -158,11 +171,8 @@ def test(model, test_loader):
 
 	return preds
 
-def write_test_results(results, data_path):
-	dt = datetime.datetime.now().strftime("%m%d_%H%M")
-	out_fn = "tests/test_results_{}.csv".format(dt)
-	if not os.path.isdir("tests"):
-		os.mkdir("tests")
+def write_test_results(results, data_path, save_path):
+	out_fn = os.path.join(save_path, "test_results.csv")
 	with open(os.path.join(data_path, 'sample_submission.csv'), 'r') as f:
 		ids = list(csv.reader(f))[1:]
 		ids = [row[0] for row in ids]
@@ -175,6 +185,10 @@ def write_test_results(results, data_path):
 			pred = [str(i) for i in pred]
 			csvwriter.writerow((frame_id, " ".join(pred)))
 	print("Results written to:", out_fn)
+
+def save_model(model, epoch, save_path):
+	fn = os.path.join(save_path, "save_{:02d}.pth".format(epoch))
+	torch.save(model.state_dict(), fn)
 
 if __name__ == "__main__":
 	main()
