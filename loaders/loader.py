@@ -12,12 +12,18 @@ from PIL import Image
 
 class ProteinImageDataset(torch.utils.data.Dataset):
 
-	def __init__(self, split="train", transforms=tfms.ToTensor(), debug=False):
+	def __init__(self, split="train", transforms=tfms.ToTensor(), image_channels="g", debug=False):
 		self.split = split
 		self.transforms = transforms
+		self.image_channels = image_channels
+		self.debug = debug
 		self.n_classes = 28
-
 		self.base_path = "/home/felix/projects/class/deeplearning/final/data/"
+		self.split_folder = os.path.join(self.base_path, "test" if self.split=="test" else "train")
+
+		# check for valid image mode
+		if not (set(image_channels) <= set("rgby")):
+			raise ValueError("Invalid image channels selection.")
 
 		# split the training set into training and validation
 		if split in ["train", "val"]:
@@ -29,39 +35,61 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			val_ids = ids[round(len(ids)*8/10):]
 			label_lookup = {k:np.array(v.split(' ')) for k,v in data}
 
+		# construct dataset
+
 		if self.split == "train":
-			self.data = [(os.path.join(self.base_path, "train", i+"_green.png"), label_lookup[i]) for i in train_ids]
+			self.data = [(i, label_lookup[i]) for i in train_ids]
+
 			labels = [self.to_onehot(np.array(v.split(' '))) for _, v in data]
 			self.class_weights = np.sum(labels, axis=0)
 			self.class_weights = self.class_weights.max() / self.class_weights
 			self.class_weights = self.class_weights / self.n_classes
 			self.class_weights = torch.tensor(self.class_weights, dtype=torch.float32)
+
 		elif self.split == "val":
-			self.data = [(os.path.join(self.base_path, "train", i+"_green.png"), label_lookup[i]) for i in val_ids]
+			self.data = [(i, label_lookup[i]) for i in val_ids]
+
 		elif self.split == "test":
-			filelist = glob.glob(os.path.join(self.base_path, "test", "*.png"))
-			test_ids = list(set([fn.split('/')[-1].split('_')[0] for fn in filelist]))
-			self.data = [(os.path.join(self.base_path, "test", i+"_green.png"), i) for i in test_ids]
+			with open(os.path.join(self.base_path, 'sample_submission.csv'), 'r') as f:
+				lines = list(csv.reader(f))[1:]
+				test_ids = [line[0] for line in lines]
+			self.data = [(i, None) for i in test_ids]
+	
 		else:
 			raise Exception("Invalid dataset split.")
 
-		if debug and self.split != "test":
+		# debug
+		if self.debug and self.split != "test":
 			self.data = self.data[:100]
 
 	def __getitem__(self, index):
 
-		if self.split in ["train", "val"]:
-			fn, label = self.data[index]
+		example_id, label = self.data[index]
+
+		if self.image_channels == "all":
+			raise NotImplementedError("Using all colors not yet supported.")
+
+		elif self.image_channels == "g":
+			fn = os.path.join(self.split_folder, example_id + "_green.png")
 			img = Image.open(fn).convert("RGB")
-			img = self.transforms(img)
-			label = self.to_onehot(label)
-			return img, label
+
+		elif set(self.image_channels) == set("rgb"):
+			r = cv2.imread(os.path.join(self.split_folder, example_id + "_red.png"),   0)
+			g = cv2.imread(os.path.join(self.split_folder, example_id + "_green.png"), 0)
+			b = cv2.imread(os.path.join(self.split_folder, example_id + "_blue.png"),  0)
+			img = np.stack([r, g, b], axis=-1)
+			img = Image.fromarray(img).convert("RGB")
 
 		else:
-			fn, frame_id = self.data[index]
-			img = Image.open(fn).convert("RGB")
-			img = self.transforms(img)
-			return img, frame_id
+			raise NotImplementedError("Image channel mode not yet supported.")
+
+		img = self.transforms(img)
+
+		if self.split in ["train", "val"]:
+			label = self.to_onehot(label)
+			return img, label
+		else:
+			return img, example_id
 
 	def __len__(self):
 		return len(self.data)
