@@ -1,0 +1,79 @@
+import os
+import sys
+import tqdm
+import glob
+import numpy as np
+
+import torch
+from torch import nn
+import torch.nn.functional as F
+from torchvision import transforms as tfms
+
+from loaders.loader import ProteinImageDataset
+from models.resnet import Resnet
+from models.pretrained import Pretrained
+from util.logger import Logger
+
+
+def main():
+
+	if not len(sys.argv) == 3:
+		raise ValueError("Not enough arguments")
+
+	folder_name = sys.argv[1]
+	folder_path = os.path.join("./test", folder_name)
+	if not os.path.exists(folder_path):
+		raise ValueError("No matching save folder: {}".format(folder_path))
+
+	save_id = sys.argv[2]
+	if os.path.exists(os.path.join(folder_path, "save_{}.pth".format(save_id))):
+		save_path = os.path.join(folder_path, "save_{}.pth".format(save_id))
+	elif os.path.exists(os.path.join(folder_path, "save_{:03d}.pth".format(int(save_id)))):
+		save_path = os.path.join(folder_path, "save_{:03d}.pth".format(int(save_id)))
+	else:
+		raise Exception("Specified save not found: {}".format(save_id))
+	
+	test_transforms = tfms.Compose([
+		tfms.ToTensor(),
+		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
+	])
+
+	test_dataset = ProteinImageDataset(split="test", transforms=test_transforms, channels="g", debug=False)
+	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1, num_workers=12, pin_memory=True)
+
+	model = Resnet()
+	model.load_state_dict(torch.load(save_path))
+	model.cuda()
+
+	logger = Logger()
+
+	print("Test")
+	test_results = test(model, test_loader)
+	logger.write_test_results(test_results, test_dataset.test_ids)
+
+def test(model, test_loader):
+	model.eval()
+
+	preds = []
+	with torch.no_grad():
+		for i, (image, frame_id) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
+
+			image = image.to(dtype=torch.float32).cuda(non_blocking=True)
+			output = model(image)
+			output = torch.sigmoid(output)
+			output = output.cpu().numpy()
+
+			pred = (output > 0.5).astype(np.int)
+			if not np.any(pred):
+				top = np.argmax(pred, axis=1)
+				pred = np.zeros(pred.shape)
+				pred[:, top] = 1
+			pred = test_loader.dataset.from_onehot(pred)
+
+			frame_id = frame_id[0]
+			preds.append((frame_id, pred))
+
+	return preds
+
+if __name__ == "__main__":
+	main()
