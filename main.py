@@ -56,7 +56,7 @@ def main():
 	max_score = 0
 
 	for epoch in range(1, EPOCHS+1):
-		print("Epoch {}".format(epoch))
+		logger.print("Epoch {}".format(epoch))
 		train(model, train_loader, loss_func, optimizer, logger)
 		score = evaluate(model, val_loader, loss_func, logger)
 		logger.save()
@@ -64,8 +64,8 @@ def main():
 			logger.save_model(model, epoch)
 			max_score = score
 
-	print()
-	print("Test")
+	logger.print()
+	logger.print("Test")
 	test_results = test(model, test_loader)
 	logger.write_test_results(test_results, test_dataset.test_ids)
 	logger.save()
