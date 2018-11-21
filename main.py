@@ -1,29 +1,16 @@
 import os
-import glob
-import csv
-import datetime
 import tqdm
+import numpy as np
+from sklearn import metrics
 
 import torch
 from torch import nn
 import torch.nn.functional as F
-
-import torchvision
 from torchvision import transforms as tfms
-
-import numpy as np
-from PIL import Image
-import cv2
-
-import sklearn
-from sklearn import metrics
-
-import matplotlib
-import matplotlib.pyplot as plt
 
 from loaders.loader import ProteinImageDataset
 from models.resnet import PretrainedResNet
-from utils.logger import Logger
+from util.logger import Logger
 
 INITIAL_LR = 0.00002
 BATCH_SIZE = 16
@@ -63,19 +50,23 @@ def main():
 	logger = Logger()
 	max_score = 0
 
-	for epoch in range(EPOCHS):
-		print("Epoch {}".format(epoch + 1))
-		train(model, train_loader, loss_func, optimizer)
-		score = evaluate(model, val_loader, loss_func)
+	for epoch in range(1, EPOCHS+1):
+		print("Epoch {}".format(epoch))
+		train(model, train_loader, loss_func, optimizer, logger)
+		score = evaluate(model, val_loader, loss_func, logger)
 		if score > max_score:
 			logger.save_model(model, epoch)
 			max_score = score
 
+	print()
+	print("Test")
 	test_results = test(model, test_loader)
 	logger.write_test_results(test_results, test_dataset.test_ids)
+	logger.save()
+	logger.save_model(model, "final")
 
 
-def train(model, train_loader, loss_func, optimizer):
+def train(model, train_loader, loss_func, optimizer, logger):
 	model.train()
 
 	losses = []
@@ -93,10 +84,13 @@ def train(model, train_loader, loss_func, optimizer):
 		optimizer.step()
 
 		losses.append(loss.item())
+		logger.log_loss(loss.item())
 		if i % (len(train_loader)//5) == 0:
-			tqdm.tqdm.write("Train loss: {}".format(np.mean(losses[-10:])))
+			mean_loss = np.mean(logger.losses[-10:])
+			tqdm.tqdm.write("Train loss: {}".format(mean_loss))
+			logger.log("Train loss: {}".format(mean_loss))
 
-def evaluate(model, val_loader, loss_func):
+def evaluate(model, val_loader, loss_func, logger):
 	model.eval()
 
 	losses = []
@@ -135,14 +129,15 @@ def evaluate(model, val_loader, loss_func):
 	f1_perclass = metrics.f1_score(targets, preds, average=None)
 	loss = np.mean(losses)
 
-	print()
-	print("Eval")
-	print("Evaluation loss:", loss)
-	print("Evaluation accuracy:", acc)
-	print("Evaluation score:", f1)
-	print("Per-Class F1:", f1_perclass)
-	print()
+	logger.print()
+	logger.print("Eval")
+	logger.print("Loss:", loss)
+	logger.print("Accuracy:", acc)
+	logger.print("Macro F1:", f1)
+	logger.print("Per-Class F1:", f1_perclass)
+	logger.print()
 
+	logger.log_eval({"loss": loss, "acc": acc, "f1": f1})
 	return f1
 
 def test(model, test_loader):

@@ -60,7 +60,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			raise Exception("Invalid dataset split.")
 
 		# debug
-		if self.debug and self.split != "test":
+		if self.debug:
 			self.data = self.data[:100]
 
 	def __getitem__(self, index):
