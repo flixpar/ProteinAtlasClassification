@@ -1,6 +1,7 @@
 import os
 import csv
 import glob
+import random
 import numpy as np
 
 import torch
@@ -12,7 +13,7 @@ from PIL import Image
 
 class ProteinImageDataset(torch.utils.data.Dataset):
 
-	def __init__(self, split="train", transforms=tfms.ToTensor(), channels="g", debug=False):
+	def __init__(self, split="train", transforms=tfms.ToTensor(), channels="g", debug=False, n_samples=-1):
 		self.split = split
 		self.transforms = transforms
 		self.image_channels = channels
@@ -55,9 +56,12 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 				test_ids = [line[0] for line in lines]
 			self.data = [(i, None) for i in test_ids]
 			self.test_ids = test_ids
-	
+
 		else:
 			raise Exception("Invalid dataset split.")
+
+		if n_samples > 0 and n_samples < len(self.data):
+			self.data = random.sample(self.data, n_samples)
 
 		# debug
 		if self.debug:

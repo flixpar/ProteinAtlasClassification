@@ -38,7 +38,7 @@ def main():
 
 	# datasets
 	train_dataset = ProteinImageDataset(split="train", transforms=train_transforms, channels="g", debug=False)
-	val_dataset   = ProteinImageDataset(split="val",   transforms=test_transforms,  channels="g", debug=False)
+	val_dataset   = ProteinImageDataset(split="val",   transforms=test_transforms,  channels="g", debug=False, n_samples=1024)
 	test_dataset  = ProteinImageDataset(split="test",  transforms=test_transforms,  channels="g", debug=False)
 
 	# dataloaders
