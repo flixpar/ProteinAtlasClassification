@@ -12,6 +12,10 @@ from loaders.loader import ProteinImageDataset
 from models.resnet import PretrainedResNet
 from util.logger import Logger
 
+import warnings
+from sklearn.exceptions import UndefinedMetricWarning
+warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+
 INITIAL_LR = 0.00002
 BATCH_SIZE = 16
 EPOCHS     = 30
@@ -54,6 +58,7 @@ def main():
 		print("Epoch {}".format(epoch))
 		train(model, train_loader, loss_func, optimizer, logger)
 		score = evaluate(model, val_loader, loss_func, logger)
+		logger.save()
 		if score > max_score:
 			logger.save_model(model, epoch)
 			max_score = score
