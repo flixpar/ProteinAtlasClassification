@@ -9,7 +9,8 @@ import torch.nn.functional as F
 from torchvision import transforms as tfms
 
 from loaders.loader import ProteinImageDataset
-from models.resnet import PretrainedResNet
+from models.resnet import Resnet
+from models.pretrained import Pretrained
 from util.logger import Logger
 
 import warnings
@@ -45,7 +46,7 @@ def main():
 	val_loader   = torch.utils.data.DataLoader(val_dataset,   shuffle=False, batch_size=1,          num_workers=12, pin_memory=True)
 	test_loader  = torch.utils.data.DataLoader(test_dataset,  shuffle=False, batch_size=1,          num_workers=12, pin_memory=True)
 
-	model = PretrainedResNet().cuda()
+	model = Pretrained(arch="inceptionv4").cuda()
 	model = nn.DataParallel(model, device_ids=[0,1])
 
 	loss_func = nn.MultiLabelSoftMarginLoss(weight=train_dataset.class_weights).cuda()

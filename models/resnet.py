@@ -2,10 +2,10 @@ import torch
 from torch import nn
 import torchvision
 
-class PretrainedResNet(nn.Module):
+class Resnet(nn.Module):
 
 	def __init__(self, n_classes=28):
-		super(PretrainedResNet, self).__init__()
+		super(Resnet, self).__init__()
 		base_model = torchvision.models.resnet152(pretrained=True)
 
 		self.resnet = nn.Sequential(
