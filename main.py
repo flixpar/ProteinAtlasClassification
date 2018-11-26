@@ -18,8 +18,10 @@ from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 INITIAL_LR = 0.00002
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 EPOCHS     = 30
+
+primary_device = torch.device("cuda:0")
 
 def main():
 
@@ -37,19 +39,20 @@ def main():
 	])
 
 	# datasets
-	train_dataset = ProteinImageDataset(split="train", transforms=train_transforms, channels="g", debug=False)
-	val_dataset   = ProteinImageDataset(split="val",   transforms=test_transforms,  channels="g", debug=False, n_samples=1024)
-	test_dataset  = ProteinImageDataset(split="test",  transforms=test_transforms,  channels="g", debug=False)
+	train_dataset = ProteinImageDataset(split="train", transforms=train_transforms, channels="rgb", debug=False)
+	val_dataset   = ProteinImageDataset(split="val",   transforms=test_transforms,  channels="rgb", debug=False, n_samples=1024)
+	test_dataset  = ProteinImageDataset(split="test",  transforms=test_transforms,  channels="rgb", debug=False)
 
 	# dataloaders
 	train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=True,  batch_size=BATCH_SIZE, num_workers=12, pin_memory=True)
 	val_loader   = torch.utils.data.DataLoader(val_dataset,   shuffle=False, batch_size=1,          num_workers=12, pin_memory=True)
 	test_loader  = torch.utils.data.DataLoader(test_dataset,  shuffle=False, batch_size=1,          num_workers=12, pin_memory=True)
 
-	model = Pretrained(arch="inceptionv4").cuda()
+	model = Pretrained(arch="senet154")
 	model = nn.DataParallel(model, device_ids=[0,1])
+	model.to(primary_device)
 
-	loss_func = nn.MultiLabelSoftMarginLoss(weight=train_dataset.class_weights).cuda()
+	loss_func = nn.MultiLabelSoftMarginLoss(weight=train_dataset.class_weights).to(primary_device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=INITIAL_LR)
 
 	logger = Logger()
@@ -78,8 +81,8 @@ def train(model, train_loader, loss_func, optimizer, logger):
 	losses = []
 	for i, (images, labels) in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
 
-		images = images.to(dtype=torch.float32).cuda(non_blocking=True)
-		labels = labels.to(dtype=torch.float32).cuda(non_blocking=True)
+		images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
+		labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
 
 		outputs = model(images)
 
@@ -106,8 +109,8 @@ def evaluate(model, val_loader, loss_func, logger):
 	with torch.no_grad():
 		for i, (images, labels) in tqdm.tqdm(enumerate(val_loader), total=len(val_loader)):
 
-			images = images.to(dtype=torch.float32).cuda(non_blocking=True)
-			labels = labels.to(dtype=torch.float32).cuda(non_blocking=True)
+			images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
+			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
 
 			outputs = model(images)
 			loss = loss_func(outputs, labels).item()
@@ -153,7 +156,7 @@ def test(model, test_loader):
 	with torch.no_grad():
 		for i, (image, frame_id) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
 
-			image = image.to(dtype=torch.float32).cuda(non_blocking=True)
+			image = image.to(primary_device, dtype=torch.float32, non_blocking=True)
 			output = model(image)
 			output = torch.sigmoid(output)
 			output = output.cpu().numpy()
