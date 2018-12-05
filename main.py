@@ -41,13 +41,13 @@ def main():
 
 	# datasets
 
-	train_dataset = ProteinImageDataset(split="train", datapath=args.datapath,
+	train_dataset = ProteinImageDataset(split="train", args=args,
 		transforms=train_transforms, channels=args.img_channels, debug=False)
 
-	val_dataset  = ProteinImageDataset(split="val", datapath=args.datapath,
+	val_dataset  = ProteinImageDataset(split="val", args=args,
 		transforms=test_transforms, channels=args.img_channels, debug=False, n_samples=args.n_val_samples)
 
-	test_dataset = ProteinImageDataset(split="test", datapath=args.datapath,
+	test_dataset = ProteinImageDataset(split="test", args=args,
 		transforms=test_transforms, channels=args.img_channels, debug=False)
 
 	# dataloaders

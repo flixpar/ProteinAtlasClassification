@@ -45,7 +45,7 @@ def main():
 		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
 	])
 
-	test_dataset = ProteinImageDataset(split="test", datapath=args.datapath,
+	test_dataset = ProteinImageDataset(split="test", args=args,
 		transforms=test_transforms, channels=args.img_channels, debug=False)
 	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1,
 		num_workers=args.workers, pin_memory=True)

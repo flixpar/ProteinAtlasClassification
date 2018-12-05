@@ -9,7 +9,7 @@ class Args:
 	batch_size = 16                 # DEFAULT 16 (int)
 
 	trainval_ratio = 0.8            # DEFAULT 0.8
-	img_size = 512                  # DEFAULT 512 (int 256-1024)
+	img_size = None                 # DEFAULT None (None | int 224-1024)
 	img_channels = "g"              # DEFAULT g (str {r, g, b, y})
 
 	arch = "resnet152"              # DEFAULT resnet152 (resnet152 | senet154 | inceptionv4)

@@ -13,13 +13,14 @@ from PIL import Image
 
 class ProteinImageDataset(torch.utils.data.Dataset):
 
-	def __init__(self, split, datapath, transforms=tfms.ToTensor(), channels="g", debug=False, n_samples=-1):
+	def __init__(self, split, args, transforms=tfms.ToTensor(), channels="g", debug=False, n_samples=-1):
 		self.split = split
 		self.transforms = transforms
 		self.image_channels = channels
 		self.debug = debug
 		self.n_classes = 28
-		self.base_path = datapath
+		self.resize = tfms.Resize(args.img_size) if args.img_size is not None else None
+		self.base_path = args.datapath
 		self.split_folder = os.path.join(self.base_path, "test" if self.split=="test" else "train")
 
 		# check for valid image mode
@@ -32,8 +33,8 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 				csvreader = csv.reader(f)
 				data = list(csvreader)[1:]
 			ids = sorted([d[0] for d in data])
-			train_ids = ids[:round(len(ids)*8/10)]
-			val_ids = ids[round(len(ids)*8/10):]
+			train_ids = ids[:round(len(ids)*args.trainval_ratio)]
+			val_ids = ids[round(len(ids)*args.trainval_ratio):]
 			label_lookup = {k:np.array(v.split(' ')) for k,v in data}
 
 		# construct dataset
@@ -88,6 +89,8 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		else:
 			raise NotImplementedError("Image channel mode not yet supported.")
 
+		if self.resize is not None:
+			img = self.resize(img)
 		img = self.transforms(img)
 
 		if self.split in ["train", "val"]:
