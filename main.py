@@ -22,6 +22,8 @@ warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 from args import Args
 args = Args()
 
+primary_device = torch.device("cuda:{}".format(args.device_ids[0]))
+
 def main():
 
 	# transforms
@@ -62,9 +64,10 @@ def main():
 	# model
 	model = get_model(args).cuda()
 	model = nn.DataParallel(model, device_ids=args.device_ids)
+	model.to(primary_device)
 
 	# training
-	loss_func = get_loss(args, train_dataset.class_weights).cuda()
+	loss_func = get_loss(args, train_dataset.class_weights).to(primary_device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_lr)
 
 	logger = Logger()
@@ -93,8 +96,8 @@ def train(model, train_loader, loss_func, optimizer, logger):
 	losses = []
 	for i, (images, labels) in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
 
-		images = images.to(dtype=torch.float32).cuda(non_blocking=True)
-		labels = labels.to(dtype=torch.float32).cuda(non_blocking=True)
+		images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
+		labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
 
 		outputs = model(images)
 
@@ -121,8 +124,8 @@ def evaluate(model, val_loader, loss_func, logger):
 	with torch.no_grad():
 		for i, (images, labels) in tqdm.tqdm(enumerate(val_loader), total=len(val_loader)):
 
-			images = images.to(dtype=torch.float32).cuda(non_blocking=True)
-			labels = labels.to(dtype=torch.float32).cuda(non_blocking=True)
+			images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
+			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
 
 			outputs = model(images)
 			loss = loss_func(outputs, labels).item()
@@ -168,7 +171,7 @@ def test(model, test_loader):
 	with torch.no_grad():
 		for i, (image, frame_id) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
 
-			image = image.to(dtype=torch.float32).cuda(non_blocking=True)
+			image = image.to(primary_device, dtype=torch.float32, non_blocking=True)
 			output = model(image)
 			output = torch.sigmoid(output)
 			output = output.cpu().numpy()
