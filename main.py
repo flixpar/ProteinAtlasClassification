@@ -11,15 +11,16 @@ from torchvision import transforms as tfms
 from loaders.loader import ProteinImageDataset
 from models.resnet import Resnet
 from models.pretrained import Pretrained
+from models.loss import MultiLabelFocalLoss
 from util.logger import Logger
+from util.misc import get_model, get_loss
 
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
-INITIAL_LR = 0.00002
-BATCH_SIZE = 16
-EPOCHS     = 30
+from args import Args
+args = Args()
 
 def main():
 
@@ -37,25 +38,39 @@ def main():
 	])
 
 	# datasets
-	train_dataset = ProteinImageDataset(split="train", transforms=train_transforms, channels="g", debug=False)
-	val_dataset   = ProteinImageDataset(split="val",   transforms=test_transforms,  channels="g", debug=False, n_samples=1024)
-	test_dataset  = ProteinImageDataset(split="test",  transforms=test_transforms,  channels="g", debug=False)
+
+	train_dataset = ProteinImageDataset(split="train", datapath=args.datapath,
+		transforms=train_transforms, channels=args.img_channels, debug=False)
+
+	val_dataset  = ProteinImageDataset(split="val", datapath=args.datapath,
+		transforms=test_transforms, channels=args.img_channels, debug=False, n_samples=args.n_val_samples)
+
+	test_dataset = ProteinImageDataset(split="test", datapath=args.datapath,
+		transforms=test_transforms, channels=args.img_channels, debug=False)
 
 	# dataloaders
-	train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=True,  batch_size=BATCH_SIZE, num_workers=12, pin_memory=True)
-	val_loader   = torch.utils.data.DataLoader(val_dataset,   shuffle=False, batch_size=1,          num_workers=12, pin_memory=True)
-	test_loader  = torch.utils.data.DataLoader(test_dataset,  shuffle=False, batch_size=1,          num_workers=12, pin_memory=True)
 
-	model = Pretrained(arch="inceptionv4").cuda()
-	model = nn.DataParallel(model, device_ids=[0,1])
+	train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=True,
+		batch_size=args.batch_size, num_workers=args.workers, pin_memory=True)
 
-	loss_func = nn.MultiLabelSoftMarginLoss(weight=train_dataset.class_weights).cuda()
-	optimizer = torch.optim.Adam(model.parameters(), lr=INITIAL_LR)
+	val_loader   = torch.utils.data.DataLoader(val_dataset, shuffle=False, batch_size=1, 
+		num_workers=args.workers, pin_memory=True)
+	
+	test_loader  = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1,
+		num_workers=args.workers, pin_memory=True)
+
+	# model
+	model = get_model(args).cuda()
+	model = nn.DataParallel(model, device_ids=args.device_ids)
+
+	# training
+	loss_func = get_loss(args, train_dataset.class_weights).cuda()
+	optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_lr)
 
 	logger = Logger()
 	max_score = 0
 
-	for epoch in range(1, EPOCHS+1):
+	for epoch in range(1, args.epochs+1):
 		logger.print("Epoch {}".format(epoch))
 		train(model, train_loader, loss_func, optimizer, logger)
 		score = evaluate(model, val_loader, loss_func, logger)
@@ -91,7 +106,7 @@ def train(model, train_loader, loss_func, optimizer, logger):
 
 		losses.append(loss.item())
 		logger.log_loss(loss.item())
-		if i % (len(train_loader)//5) == 0:
+		if i % (len(train_loader)//args.log_freq) == 0:
 			mean_loss = np.mean(logger.losses[-10:])
 			tqdm.tqdm.write("Train loss: {}".format(mean_loss))
 			logger.log("Train loss: {}".format(mean_loss))
@@ -172,4 +187,3 @@ def test(model, test_loader):
 
 if __name__ == "__main__":
 	main()
-

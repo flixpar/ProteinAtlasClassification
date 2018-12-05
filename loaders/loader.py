@@ -13,13 +13,13 @@ from PIL import Image
 
 class ProteinImageDataset(torch.utils.data.Dataset):
 
-	def __init__(self, split="train", transforms=tfms.ToTensor(), channels="g", debug=False, n_samples=-1):
+	def __init__(self, split, datapath, transforms=tfms.ToTensor(), channels="g", debug=False, n_samples=-1):
 		self.split = split
 		self.transforms = transforms
 		self.image_channels = channels
 		self.debug = debug
 		self.n_classes = 28
-		self.base_path = "/home/felix/projects/class/deeplearning/final/data/"
+		self.base_path = datapath
 		self.split_folder = os.path.join(self.base_path, "test" if self.split=="test" else "train")
 
 		# check for valid image mode

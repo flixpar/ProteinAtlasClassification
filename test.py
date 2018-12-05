@@ -3,6 +3,7 @@ import sys
 import tqdm
 import glob
 import numpy as np
+import importlib.util
 
 import torch
 from torch import nn
@@ -12,8 +13,9 @@ from torchvision import transforms as tfms
 from loaders.loader import ProteinImageDataset
 from models.resnet import Resnet
 from models.pretrained import Pretrained
-from util.logger import Logger
 
+from util.logger import Logger
+from util.misc import get_model
 
 def main():
 
@@ -21,7 +23,7 @@ def main():
 		raise ValueError("Not enough arguments")
 
 	folder_name = sys.argv[1]
-	folder_path = os.path.join("./test", folder_name)
+	folder_path = os.path.join("./saves", folder_name)
 	if not os.path.exists(folder_path):
 		raise ValueError("No matching save folder: {}".format(folder_path))
 
@@ -32,16 +34,23 @@ def main():
 		save_path = os.path.join(folder_path, "save_{:03d}.pth".format(int(save_id)))
 	else:
 		raise Exception("Specified save not found: {}".format(save_id))
+
+	args_module_spec = importlib.util.spec_from_file_location("args", os.path.join(folder_path, "args.py"))
+	args_module = importlib.util.module_from_spec(args_module_spec)
+	args_module_spec.loader.exec_module(args_module)
+	args = args_module.Args()
 	
 	test_transforms = tfms.Compose([
 		tfms.ToTensor(),
 		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
 	])
 
-	test_dataset = ProteinImageDataset(split="test", transforms=test_transforms, channels="g", debug=False)
-	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1, num_workers=12, pin_memory=True)
+	test_dataset = ProteinImageDataset(split="test", datapath=args.datapath,
+		transforms=test_transforms, channels=args.img_channels, debug=False)
+	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1,
+		num_workers=args.workers, pin_memory=True)
 
-	model = Resnet()
+	model = get_model(args)
 	model.load_state_dict(torch.load(save_path))
 	model.cuda()
 

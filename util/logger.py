@@ -3,6 +3,7 @@ import datetime
 import pickle
 import json
 import csv
+import shutil
 import torch
 import numpy as np
 import pandas as pd
@@ -22,6 +23,7 @@ class Logger:
 		self.scores = []
 		self.eval_metrics = set()
 		self.main_log_fn = os.path.join(self.path, "log.txt")
+		shutil.copy2("args.py", self.path)
 
 	def write_test_results(self, results, test_ids):
 		out_fn = os.path.join(self.path, "test_results.csv")
