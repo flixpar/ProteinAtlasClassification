@@ -6,20 +6,20 @@ import numpy as np
 
 import torch
 import torchvision
-from torchvision import transforms as tfms
 
 import cv2
 from PIL import Image
+import albumentations as tfms
 
 class ProteinImageDataset(torch.utils.data.Dataset):
 
-	def __init__(self, split, args, transforms=tfms.ToTensor(), channels="g", debug=False, n_samples=-1):
+	def __init__(self, split, args, transforms=None, channels="g", debug=False, n_samples=-1):
 		self.split = split
 		self.transforms = transforms
 		self.image_channels = channels
 		self.debug = debug
 		self.n_classes = 28
-		self.resize = tfms.Resize(args.img_size) if args.img_size is not None else None
+		self.resize = tfms.Resize(args.img_size, args.img_size) if args.img_size is not None else None
 		self.base_path = args.datapath
 		self.split_folder = os.path.join(self.base_path, "test" if self.split=="test" else "train")
 
@@ -72,19 +72,22 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 
 		example_id, label = self.data[index]
 
-		if self.image_channels == "all":
-			raise NotImplementedError("Using all colors not yet supported.")
-
-		elif self.image_channels == "g":
+		if self.image_channels == "g":
 			fn = os.path.join(self.split_folder, example_id + "_green.png")
-			img = Image.open(fn).convert("RGB")
+			img = cv2.imread(fn, cv2.IMREAD_COLOR)
 
 		elif set(self.image_channels) == set("rgb"):
-			r = cv2.imread(os.path.join(self.split_folder, example_id + "_red.png"),   0)
-			g = cv2.imread(os.path.join(self.split_folder, example_id + "_green.png"), 0)
-			b = cv2.imread(os.path.join(self.split_folder, example_id + "_blue.png"),  0)
+			r = cv2.imread(os.path.join(self.split_folder, example_id + "_red.png"),   cv2.IMREAD_GRAYSCALE)
+			g = cv2.imread(os.path.join(self.split_folder, example_id + "_green.png"), cv2.IMREAD_GRAYSCALE)
+			b = cv2.imread(os.path.join(self.split_folder, example_id + "_blue.png"),  cv2.IMREAD_GRAYSCALE)
 			img = np.stack([r, g, b], axis=-1)
-			img = Image.fromarray(img).convert("RGB")
+
+		elif set(self.image_channels) == set("rgby"):
+			r = cv2.imread(os.path.join(self.split_folder, example_id + "_red.png"),    cv2.IMREAD_GRAYSCALE)
+			g = cv2.imread(os.path.join(self.split_folder, example_id + "_green.png"),  cv2.IMREAD_GRAYSCALE)
+			b = cv2.imread(os.path.join(self.split_folder, example_id + "_blue.png"),   cv2.IMREAD_GRAYSCALE)
+			y = cv2.imread(os.path.join(self.split_folder, example_id + "_yellow.png"), cv2.IMREAD_GRAYSCALE)
+			img = np.stack([r, g, b, y], axis=-1)
 
 		else:
 			raise NotImplementedError("Image channel mode not yet supported.")
@@ -92,6 +95,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		if self.resize is not None:
 			img = self.resize(img)
 		img = self.transforms(img)
+		img = torch.from_numpy(img.transpose((2, 0, 1)))
 
 		if self.split in ["train", "val"]:
 			label = self.to_onehot(label)

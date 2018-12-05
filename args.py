@@ -1,3 +1,6 @@
+import torch
+import albumentations as tfms
+
 class Args:
 
 	##############################
@@ -22,12 +25,26 @@ class Args:
 	log_freq = 5                    # DEFAULT 10 (int)
 
 	##############################
+	###### Image Transforms ######
+	##############################
+
+	train_transforms = tfms.Compose([
+		tfms.HorizontalFlip(p=0.5),
+		tfms.VerticalFlip(p=0.5),
+		tfms.RandomBrightness(),
+		tfms.RandomContrast(),
+		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
+	])
+	test_transforms = tfms.Compose([
+		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
+	])
+
+	##############################
 	########### Test #############
 	##############################
 
 	test_augmentation = None        # DEFAULT None (None)
-	test_model_path = "latest"      # DEFAULT latest (latest | <path>)
-
+	
 	##############################
 	########## Paths #############
 	##############################

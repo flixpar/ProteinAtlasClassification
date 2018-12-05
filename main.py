@@ -6,7 +6,6 @@ from sklearn import metrics
 import torch
 from torch import nn
 import torch.nn.functional as F
-from torchvision import transforms as tfms
 
 from loaders.loader import ProteinImageDataset
 from models.resnet import Resnet
@@ -26,29 +25,16 @@ primary_device = torch.device("cuda:{}".format(args.device_ids[0]))
 
 def main():
 
-	# transforms
-	train_transforms = tfms.Compose([
-		tfms.RandomHorizontalFlip(),
-		tfms.RandomVerticalFlip(),
-		tfms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0),
-		tfms.ToTensor(),
-		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
-	])
-	test_transforms = tfms.Compose([
-		tfms.ToTensor(),
-		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
-	])
-
 	# datasets
 
 	train_dataset = ProteinImageDataset(split="train", args=args,
-		transforms=train_transforms, channels=args.img_channels, debug=False)
+		transforms=args.train_transforms, channels=args.img_channels, debug=False)
 
 	val_dataset  = ProteinImageDataset(split="val", args=args,
-		transforms=test_transforms, channels=args.img_channels, debug=False, n_samples=args.n_val_samples)
+		transforms=args.test_transforms, channels=args.img_channels, debug=False, n_samples=args.n_val_samples)
 
 	test_dataset = ProteinImageDataset(split="test", args=args,
-		transforms=test_transforms, channels=args.img_channels, debug=False)
+		transforms=args.test_transforms, channels=args.img_channels, debug=False)
 
 	# dataloaders
 
