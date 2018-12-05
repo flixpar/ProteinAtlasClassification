@@ -14,9 +14,10 @@ class BinaryFocalLoss(nn.Module):
 
 	def __init__(self, gamma=2.0, weight=None, reduction="elementwise_mean"):
 		super(BinaryFocalLoss, self).__init__()
+		if weight is not None: self.register_buffer('weight', weight)
 		self.weight = weight
 		self.reduction = reduction
-		self.eps = 1e-8
+		self.eps = 1e-7
 
 	def forward(self, input, target):
 		
@@ -37,13 +38,12 @@ class MultiLabelFocalLoss(nn.Module):
 
 	def __init__(self, gamma=2.0, weight=None, reduction="elementwise_mean"):
 		super(MultiLabelFocalLoss, self).__init__()
+		if weight is not None: self.register_buffer('weight', weight)
 		self.weight = weight
 		self.reduction = reduction
-		self.eps = 1e-8
+		self.eps = 1e-7
 
 	def forward(self, input, target):
-		# input:  [n_examples x n_classes]
-		# target: [n_examples x n_classes]
 
 		input = input.clamp(self.eps, 1.0-self.eps)
 		loss = - (target * torch.pow(1 - input, self.gamma) * torch.log(input)) - ((1 - target) * torch.pow(input, self.gamma) * torch.log(1 - input))
