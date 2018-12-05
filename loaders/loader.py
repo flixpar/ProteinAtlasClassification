@@ -93,8 +93,9 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			raise NotImplementedError("Image channel mode not yet supported.")
 
 		if self.resize is not None:
-			img = self.resize(img)
-		img = self.transforms(img)
+			img = self.resize(image=img)["image"]
+		if self.transforms is not None:
+			img = self.transforms(image=img)["image"]
 		img = torch.from_numpy(img.transpose((2, 0, 1)))
 
 		if self.split in ["train", "val"]:

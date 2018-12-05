@@ -20,9 +20,10 @@ class Args:
 	loss = "softmargin"             # DEFAULT softmargin (softmargin | focal)
 
 	device_ids = [0,1]              # DEFAULT [0,] (list 0-8)
-	workers = 6                     # DEFAULT 6 (int 0-12)
+	workers = 8                     # DEFAULT 8 (int 0-16)
 
 	log_freq = 5                    # DEFAULT 10 (int)
+	n_val_samples = 1024            # DEFAULT 1024 (int)
 
 	##############################
 	###### Image Transforms ######
