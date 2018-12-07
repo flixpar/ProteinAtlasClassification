@@ -65,7 +65,7 @@ def main():
 		score = evaluate(model, val_loader, loss_func, logger)
 		logger.save()
 		if score > max_score:
-			logger.save_model(model, epoch)
+			logger.save_model(model.module, epoch)
 			max_score = score
 
 	logger.print()
