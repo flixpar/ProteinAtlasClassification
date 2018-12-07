@@ -17,7 +17,7 @@ def get_model(args):
 
 def get_loss(args, weights):
 
-	if "inverse" in args.weight_mode:
+	if args.weight_mode is not None and "inverse" in args.weight_mode:
 		class_weights = weights
 		if "sqrt" in args.weight_mode:
 			class_weights = torch.sqrt(class_weights)
@@ -27,7 +27,7 @@ def get_loss(args, weights):
 	if args.loss == "softmargin":
 		loss_func = nn.MultiLabelSoftMarginLoss(weight=class_weights)
 	elif args.loss == "focal":
-		loss_func = MultiLabelFocalLoss(weight=class_weights)
+		loss_func = MultiLabelFocalLoss(weight=class_weights, gamma=args.gamma)
 	else:
 		raise ValueError("Invalid loss function specifier: {}".format(args.loss))
 

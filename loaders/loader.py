@@ -13,7 +13,7 @@ import albumentations as tfms
 
 class ProteinImageDataset(torch.utils.data.Dataset):
 
-	def __init__(self, split, args, transforms=None, channels="g", debug=False, n_samples=-1):
+	def __init__(self, split, args, transforms=None, channels="g", debug=False, n_samples=None):
 		self.split = split
 		self.transforms = transforms
 		self.image_channels = channels
@@ -61,7 +61,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		else:
 			raise Exception("Invalid dataset split.")
 
-		if n_samples > 0 and n_samples < len(self.data):
+		if n_samples is not None and n_samples < len(self.data):
 			self.data = random.sample(self.data, n_samples)
 
 		# debug
