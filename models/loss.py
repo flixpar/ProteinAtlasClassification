@@ -54,7 +54,7 @@ class MultiLabelFocalLoss(nn.Module):
 		if self.weight is not None:
 			loss = torch.mul(loss, self.weight)
 
-		loss = torch.sum(loss, dim=1)
+		loss = torch.mean(loss, dim=1)
 
 		if self.reduction == "elementwise_mean":
 			loss = loss.mean(dim=0)
