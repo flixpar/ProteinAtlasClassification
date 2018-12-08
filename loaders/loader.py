@@ -93,7 +93,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 
 		if self.image_channels == "g":
 			fn = os.path.join(self.split_folder, example_id + "_green.png")
-			img = cv2.imread(fn, cv2.IMREAD_COLOR)
+			img = cv2.imread(fn, cv2.IMREAD_GRAYSCALE)
 
 		elif set(self.image_channels) == set("rgb"):
 			r = cv2.imread(os.path.join(self.split_folder, example_id + "_red.png"),   cv2.IMREAD_GRAYSCALE)
