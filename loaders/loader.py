@@ -77,6 +77,12 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		if n_samples is not None and n_samples < len(self.data):
 			self.data = random.sample(self.data, n_samples)
 
+		if self.transforms is not None and isinstance(self.transforms, tfms.Compose):
+			for t in self.transforms:
+				if isinstance(t, tfms.Normalize):
+					t.mean = [0.054] * len(self.image_channels)
+					t.std  = [0.089] * len(self.image_channels)
+
 		# debug
 		if self.debug:
 			self.data = self.data[:100]

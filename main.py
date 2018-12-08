@@ -17,6 +17,7 @@ from util.misc import get_model, get_loss
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from args import Args
 args = Args()
