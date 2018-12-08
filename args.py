@@ -11,16 +11,17 @@ class Args:
 	initial_lr = 1e-5               # DEFAULT 2e-5 (float)
 	batch_size = 16                 # DEFAULT 16 (int)
 
-	trainval_ratio = 0.95           # DEFAULT 0.8
+	trainval_ratio = 0.90           # DEFAULT 0.9
 	img_size = None                 # DEFAULT None (None | int 224-1024)
 	img_channels = "rgby"           # DEFAULT g (str {r, g, b, y})
-
 	arch = "inceptionv4"            # DEFAULT resnet152 (resnet152 | senet154 | inceptionv4)
-	weight_mode = "inverse"         # DEFAULT inverse (inverse + sqrt | None)
-	loss = "softmargin"             # DEFAULT softmargin (softmargin | focal)
-	focal_gamma = 2                 # DEFAULT 2 (int)
 
-	device_ids = [0,1]              # DEFAULT [0,] (list 0-8)
+	loss = "softmargin"             # DEFAULT softmargin (softmargin | focal | fbeta)
+	weight_mode = "inverse"         # DEFAULT inverse ({inverse, sqrt} | None)
+	focal_gamma = 2                 # DEFAULT 2 (float)
+	fbeta = 1                       # DEFAULT 1 (float)
+
+	device_ids = [0,1]              # DEFAULT [0,] (list int 0-8)
 	workers = 8                     # DEFAULT 8 (int 0-16)
 
 	log_freq = 5                    # DEFAULT 10 (int)

@@ -3,7 +3,7 @@ from torch import nn
 
 from models.resnet import Resnet
 from models.pretrained import Pretrained
-from models.loss import MultiLabelFocalLoss
+from models.loss import MultiLabelFocalLoss, FBetaLoss
 
 def get_model(args):
 	n_channels = len(set(args.img_channels))
@@ -28,6 +28,8 @@ def get_loss(args, weights):
 		loss_func = nn.MultiLabelSoftMarginLoss(weight=class_weights)
 	elif args.loss == "focal":
 		loss_func = MultiLabelFocalLoss(weight=class_weights, gamma=args.gamma)
+	elif args.loss == "fbeta":
+		loss_func = FBetaLoss(weight=class_weights, beta=args.fbeta, soft=True)
 	else:
 		raise ValueError("Invalid loss function specifier: {}".format(args.loss))
 
