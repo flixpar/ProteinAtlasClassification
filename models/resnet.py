@@ -38,7 +38,7 @@ class Resnet(nn.Module):
 	def inflate_conv(self, layer, n_channels):
 
 		original_state_dict = layer.state_dict()
-		original_weights = original_state_dict["weights"]
+		original_weights = original_state_dict["weight"]
 		s = original_weights.shape
 		
 		if n_channels == 1:
@@ -48,14 +48,14 @@ class Resnet(nn.Module):
 		elif n_channels == 3:
 			return layer
 		elif n_channels == 4:
-			weights = torch.Tensor().new_empty(shape=(s[0], 1, s[2], s[3]))
+			weights = torch.Tensor().new_empty(size=(s[0], 4, s[2], s[3]))
 			weights[:,:3,:,:] = original_weights
 			weights[:, 3,:,:] = original_weights[:,0,:,:]
 		else:
 			raise ValueError("Invalid number of input channels")
 
 		out_state_dict = original_state_dict
-		out_state_dict["weights"] = weights
+		out_state_dict["weight"] = weights
 
 		out_layer = nn.Conv2d(n_channels, s[0], kernel_size=(s[2],s[3]),
 			stride=layer.stride, padding=layer.padding, bias=layer.bias)
