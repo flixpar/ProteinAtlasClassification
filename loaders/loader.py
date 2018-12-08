@@ -45,7 +45,10 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			lbls = np.asarray(lbls)
 
 			msss = MultilabelStratifiedShuffleSplit(n_splits=1, train_size=args.trainval_ratio, test_size=None, random_state=0)
-			train_ids, val_ids = list(msss.split(ids, lbls))[0]
+			train_inds, val_inds = list(msss.split(ids, lbls))[0]
+
+			train_ids = ids[train_inds].flatten().tolist()
+			val_ids   = ids[val_inds].flatten().tolist()
 
 		# construct dataset
 
