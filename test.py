@@ -14,6 +14,7 @@ import albumentations as tfms
 from loaders.loader import ProteinImageDataset
 from models.resnet import Resnet
 from models.pretrained import Pretrained
+from models.postprocess import postprocess
 
 from util.logger import Logger
 from util.misc import get_model
@@ -82,11 +83,7 @@ def test(model, test_loader):
 			output = torch.sigmoid(output)
 			output = output.cpu().numpy()
 
-			pred = (output > 0.5).astype(np.int)
-			if not np.any(pred):
-				top = np.argmax(pred, axis=1)
-				pred = np.zeros(pred.shape)
-				pred[:, top] = 1
+			pred = postprocess(output)
 			pred = test_loader.dataset.from_onehot(pred)
 
 			frame_id = frame_id[0]

@@ -13,6 +13,7 @@ from models.pretrained import Pretrained
 from models.loss import MultiLabelFocalLoss
 from util.logger import Logger
 from util.misc import get_model, get_loss
+from models.postprocess import postprocess
 
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
@@ -120,12 +121,7 @@ def evaluate(model, val_loader, loss_func, logger):
 
 			pred = torch.sigmoid(outputs)
 			pred = pred.cpu().numpy()
-			pred = (pred > 0.5).astype(np.int)
-
-			if not np.any(pred):
-				top = np.argmax(pred, axis=1)
-				pred = np.zeros(pred.shape)
-				pred[:, top] = 1
+			pred = postprocess(pred)
 
 			labels = labels.cpu().numpy().astype(np.int)
 
@@ -163,12 +159,8 @@ def test(model, test_loader):
 			output = model(image)
 			output = torch.sigmoid(output)
 			output = output.cpu().numpy()
-
-			pred = (output > 0.5).astype(np.int)
-			if not np.any(pred):
-				top = np.argmax(pred, axis=1)
-				pred = np.zeros(pred.shape)
-				pred[:, top] = 1
+			
+			pred = postprocess(output)
 			pred = test_loader.dataset.from_onehot(pred)
 
 			frame_id = frame_id[0]
