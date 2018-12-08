@@ -4,6 +4,7 @@ import tqdm
 import glob
 import numpy as np
 import importlib.util
+from collections import OrderedDict
 
 import torch
 from torch import nn
@@ -51,7 +52,13 @@ def main():
 		num_workers=args.workers, pin_memory=True)
 
 	model = get_model(args)
-	model.load_state_dict(torch.load(save_path))
+	state_dict = torch.load(save_path)
+	if "module." in list(state_dict.keys())[0]:
+		temp_state = OrderedDict()
+		for k, v in state_dict.items():
+			temp_state[k.split("module.")[-1]] = v
+		state_dict = temp_state
+	model.load_state_dict(state_dict)
 	model.cuda()
 
 	logger = Logger()
