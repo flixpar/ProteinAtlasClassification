@@ -9,7 +9,7 @@ from collections import OrderedDict
 import torch
 from torch import nn
 import torch.nn.functional as F
-from torchvision import transforms as tfms
+import albumentations as tfms
 
 from loaders.loader import ProteinImageDataset
 from models.resnet import Resnet
@@ -41,11 +41,7 @@ def main():
 	args_module_spec.loader.exec_module(args_module)
 	args = args_module.Args()
 	
-	test_transforms = tfms.Compose([
-		tfms.ToTensor(),
-		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
-	])
-
+	test_transforms = args.test_transforms
 	test_dataset = ProteinImageDataset(split="test", args=args,
 		transforms=test_transforms, channels=args.img_channels, debug=False)
 	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1,
