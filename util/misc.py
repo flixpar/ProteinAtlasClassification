@@ -27,7 +27,7 @@ def get_loss(args, weights):
 	if args.loss == "softmargin":
 		loss_func = nn.MultiLabelSoftMarginLoss(weight=class_weights)
 	elif args.loss == "focal":
-		loss_func = MultiLabelFocalLoss(weight=class_weights, gamma=args.gamma)
+		loss_func = MultiLabelFocalLoss(weight=class_weights, gamma=args.focal_gamma)
 	elif args.loss == "fbeta":
 		loss_func = FBetaLoss(weight=class_weights, beta=args.fbeta, soft=True)
 	else:

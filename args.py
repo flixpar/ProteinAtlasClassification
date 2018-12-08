@@ -13,6 +13,7 @@ class Args:
 
 	trainval_ratio = 0.90           # DEFAULT 0.9
 	img_size = None                 # DEFAULT None (None | int 224-1024)
+	full_size = False               # DEFAULT False (bool)
 	img_channels = "rgby"           # DEFAULT g (str {r, g, b, y})
 	arch = "inceptionv4"            # DEFAULT resnet152 (resnet152 | senet154 | inceptionv4)
 
@@ -56,3 +57,4 @@ class Args:
 	##############################
 
 	datapath = "/home/felix/projects/class/deeplearning/final/data/"
+	largedatapath = "/mnt/data2/atlas/"
