@@ -11,6 +11,10 @@ import cv2
 from PIL import Image
 import albumentations as tfms
 
+import sklearn
+import iterstrat
+from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
+
 class ProteinImageDataset(torch.utils.data.Dataset):
 
 	def __init__(self, split, args, transforms=None, channels="g", debug=False, n_samples=None):
@@ -32,10 +36,13 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			with open(os.path.join(self.base_path, 'train.csv'), 'r') as f:
 				csvreader = csv.reader(f)
 				data = list(csvreader)[1:]
-			ids = sorted([d[0] for d in data])
-			train_ids = ids[:round(len(ids)*args.trainval_ratio)]
-			val_ids = ids[round(len(ids)*args.trainval_ratio):]
 			label_lookup = {k:np.array(v.split(' ')) for k,v in data}
+
+			ids  = sorted(list(label_lookup.keys()))
+			lbls = [label_lookup[k] for k in ids]
+
+			msss = MultilabelStratifiedShuffleSplit(n_splits=1, train_size=args.trainval_ratio, random_state=0)
+			train_ids, val_ids = msss.split(ids, lbls)
 
 		# construct dataset
 
