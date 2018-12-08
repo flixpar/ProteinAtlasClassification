@@ -75,6 +75,7 @@ def main():
 	logger.write_test_results(test_results, test_dataset.test_ids)
 	logger.save()
 	logger.save_model(model, "final")
+	logger.run_test("final")
 
 
 def train(model, train_loader, loss_func, optimizer, logger):

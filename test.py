@@ -36,6 +36,9 @@ def main():
 	else:
 		raise Exception("Specified save not found: {}".format(save_id))
 
+	auto_submit = sys.argv[3]
+	auto_submit = (auto_submit == "True")
+
 	args_module_spec = importlib.util.spec_from_file_location("args", os.path.join(folder_path, "args.py"))
 	args_module = importlib.util.module_from_spec(args_module_spec)
 	args_module_spec.loader.exec_module(args_module)
@@ -57,11 +60,15 @@ def main():
 	model.load_state_dict(state_dict)
 	model.cuda()
 
-	logger = Logger()
+	logger = Logger(path=folder_path)
 
 	print("Test")
 	test_results = test(model, test_loader)
 	logger.write_test_results(test_results, test_dataset.test_ids)
+
+	if auto_submit:
+		print("Submitting")
+		logger.submit_kaggle()
 
 def test(model, test_loader):
 	model.eval()

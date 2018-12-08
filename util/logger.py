@@ -7,6 +7,7 @@ import shutil
 import torch
 import numpy as np
 import pandas as pd
+import subprocess
 
 import matplotlib
 matplotlib.use("agg")
@@ -17,16 +18,25 @@ sns.set(style="darkgrid")
 
 class Logger:
 
-	def __init__(self):
-		dt = datetime.datetime.now().strftime("%m%d_%H%M")
-		self.path = "./saves/{}".format(dt)
-		if not os.path.exists(self.path):
-			os.makedirs(self.path)
-		self.losses = []
-		self.scores = []
-		self.eval_metrics = set()
-		self.main_log_fn = os.path.join(self.path, "log.txt")
-		shutil.copy2("args.py", self.path)
+	def __init__(self, path=None):
+
+		if path is not None:
+			if not os.path.isdir(path):
+				raise ValueError("Invalid logger path given.")
+			self.path = path
+			self.dt = path.replace('/','').replace('.','').replace('saves','')
+			self.main_log_fn = os.path.join(self.path, "test.txt")
+
+		else:
+			self.dt = datetime.datetime.now().strftime("%m%d_%H%M")
+			self.path = "./saves/{}".format(self.dt)
+			if not os.path.exists(self.path):
+				os.makedirs(self.path)
+			self.losses = []
+			self.scores = []
+			self.eval_metrics = set()
+			self.main_log_fn = os.path.join(self.path, "log.txt")
+			shutil.copy2("args.py", self.path)
 
 	def write_test_results(self, results, test_ids):
 		out_fn = os.path.join(self.path, "test_results.csv")
@@ -65,6 +75,17 @@ class Logger:
 			if not k in data:
 				data[k] = ''
 		self.scores.append(data)
+
+	def run_test(self, epoch):
+		cmd = ["python3", "test.py", self.dt, epoch, "False"]
+		subprocess.run(cmd, shell=True)
+
+	def submit_kaggle(self):
+		pth = os.path.join(self.path, "test_results.csv")
+		msg = self.dt
+		cmd = ["kaggle", "competitions", "submit", "-c",
+			"human-protein-atlas-image-classification", "-f", pth, "-m", msg]
+		subprocess.run(cmd, shell=True)
 
 	def save(self):
 
