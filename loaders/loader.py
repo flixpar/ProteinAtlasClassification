@@ -21,6 +21,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		self.split = split
 		self.transforms = transforms
 		self.image_channels = channels
+		self.full_size = args.full_size
 		self.debug = debug
 		self.n_classes = 28
 		self.resize = tfms.Resize(args.img_size, args.img_size) if args.img_size is not None else None
@@ -116,6 +117,8 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			img = self.resize(image=img)["image"]
 		if self.transforms is not None:
 			img = self.transforms(image=img)["image"]
+		if len(img.shape) == 2:
+			img = img[:,:,np.newaxis]
 		img = torch.from_numpy(img.transpose((2, 0, 1)))
 
 		if self.split in ["train", "val"]:
