@@ -10,3 +10,5 @@ sklearn
 pandas
 matplotlib
 seaborn
+iterative-stratification
+pystruct
