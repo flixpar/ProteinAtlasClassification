@@ -21,7 +21,7 @@ from util.misc import get_model
 
 def main():
 
-	if not len(sys.argv) == 3:
+	if not len(sys.argv) == 4:
 		raise ValueError("Not enough arguments")
 
 	folder_name = sys.argv[1]

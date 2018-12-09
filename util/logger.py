@@ -78,14 +78,14 @@ class Logger:
 
 	def run_test(self, epoch):
 		cmd = ["python3", "test.py", self.dt, epoch, "False"]
-		subprocess.run(cmd, shell=True)
+		subprocess.run(cmd, shell=False)
 
 	def submit_kaggle(self):
 		pth = os.path.join(self.path, "test_results.csv")
 		msg = self.dt
 		cmd = ["kaggle", "competitions", "submit", "-c",
 			"human-protein-atlas-image-classification", "-f", pth, "-m", msg]
-		subprocess.run(cmd, shell=True)
+		subprocess.run(cmd, shell=False)
 
 	def save(self):
 
