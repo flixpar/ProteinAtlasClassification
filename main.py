@@ -12,7 +12,7 @@ from models.resnet import Resnet
 from models.pretrained import Pretrained
 from models.loss import MultiLabelFocalLoss
 from util.logger import Logger
-from util.misc import get_model, get_loss
+from util.misc import get_model, get_loss, get_train_sampler
 from models.postprocess import postprocess
 
 import warnings
@@ -38,9 +38,13 @@ def main():
 	test_dataset = ProteinImageDataset(split="test", args=args,
 		transforms=args.test_transforms, channels=args.img_channels, debug=False)
 
+	# sampling
+	train_sampler = get_train_sampler(args, train_dataset)
+	shuffle = (train_sampler is None)
+
 	# dataloaders
 
-	train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=True,
+	train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=shuffle, sampler=train_sampler,
 		batch_size=args.batch_size, num_workers=args.workers, pin_memory=True)
 
 	val_loader   = torch.utils.data.DataLoader(val_dataset, shuffle=False, batch_size=1, 
