@@ -14,7 +14,8 @@ class Args:
 
 	initial_lr = 1e-5               # DEFAULT 1e-5 (float)
 	lr_schedule = None              # DEFAULT None (None | poly | exp | step | multistep | cosine)
-	lr_schedule_params = {}         # DEFAULT {} (dict)
+	lr_schedule_params = {          # DEFAULT {} (dict)
+	}
 	
 	img_size = None                 # DEFAULT None (None | int 224-1024)
 	full_size = False               # DEFAULT False (bool)
@@ -47,8 +48,12 @@ class Args:
 	########### Test #############
 	##############################
 
-	test_augmentation = []        # DEFAULT [] (list)
-	test_postprocessing = False   # DEFAULT False (bool)
+	test_augmentation = [         # DEFAULT [] (list)
+	]
+	postprocessing    = [         # DEFAULT [] (list {max3, max4, min1, 9+10, crf, uniform_thresh, perclass_thresh})
+		"max3", "9+10", "min1",
+		"uniform_thresh"
+	]
 
 	##############################
 	########## Paths #############

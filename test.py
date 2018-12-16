@@ -15,6 +15,7 @@ from loaders.loader import ProteinImageDataset
 from models.resnet import Resnet
 from models.pretrained import Pretrained
 from models.postprocess import postprocess
+from models.postprocess import optimize_uniform_threshold, optimize_perclass_threshold
 
 from util.logger import Logger
 from util.misc import get_model
@@ -63,18 +64,21 @@ def main():
 
 	logger = Logger(path=folder_path)
 
+	print("Find Threshold")
+	thresh = find_threshold(args, model)
+
 	print("Test")
-	test_results = test(model, test_loader)
+	test_results = test(args, model, test_loader, thresh)
 	logger.write_test_results(test_results, test_dataset.test_ids)
 
 	if auto_submit:
 		print("Submitting")
 		logger.submit_kaggle()
 
-def test(model, test_loader):
+def test(args, model, test_loader, thresh):
 	model.eval()
 
-	preds = []
+	outputs = []
 	with torch.no_grad():
 		for i, (image, frame_id) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
 
@@ -83,13 +87,39 @@ def test(model, test_loader):
 			output = torch.sigmoid(output)
 			output = output.cpu().numpy()
 
-			pred = postprocess(output)
-			pred = test_loader.dataset.decode_label(pred)
-
 			frame_id = frame_id[0]
-			preds.append((frame_id, pred))
+			outputs.append((frame_id, output))
 
+	preds = [p[1] for p in outputs]
+	preds = postprocess(args, preds=preds, threshold=thresh)
+	preds = [test_loader.dataset.decode_label(p) for p in preds]
+
+	preds = list(zip([p[0] for p in outputs], preds))
 	return preds
+
+def find_threshold(args, model):
+	if not ("uniform_thresh" in args.postprocessing or "perclass_thresh" in args.postprocessing):
+		return None
+	model.eval()
+	preds, targets = [], []
+	dataset  = ProteinImageDataset(split="val", args=args, channels=args.img_channels)
+	loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=1, 
+		num_workers=args.workers, pin_memory=True)
+	with torch.no_grad():
+		for (images, labels) in tqdm.tqdm(loader, total=len(loader)):
+			images = images.to(dtype=torch.float32).cuda(non_blocking=True)
+			pred = torch.sigmoid(model(images)).cpu().numpy()
+			labels = labels.cpu().numpy().astype(np.int)
+			preds.append(pred)
+			targets.append(labels)
+	targets = np.array(targets).squeeze()
+	preds = np.array(preds).squeeze()
+	if "uniform_thresh" in args.postprocessing:
+		return optimize_uniform_threshold(preds, targets)
+	elif "perclass_thresh" in args.postprocessing:
+		return optimize_perclass_threshold(preds, targets)
+	else:
+		return None
 
 if __name__ == "__main__":
 	main()

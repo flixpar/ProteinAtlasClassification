@@ -126,7 +126,6 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 
 			pred = torch.sigmoid(outputs)
 			pred = pred.cpu().numpy()
-			pred = postprocess(pred)
 
 			labels = labels.cpu().numpy().astype(np.int)
 
@@ -136,6 +135,8 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 
 	targets = np.array(targets).squeeze()
 	preds = np.array(preds).squeeze()
+
+	preds = postprocess(args, preds=preds, targets=targets)
 
 	acc = metrics.accuracy_score(targets, preds)
 	f1 = metrics.f1_score(targets, preds, average="macro")
