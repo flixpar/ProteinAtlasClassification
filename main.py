@@ -12,7 +12,7 @@ from models.resnet import Resnet
 from models.pretrained import Pretrained
 from models.loss import MultiLabelFocalLoss
 from util.logger import Logger
-from util.misc import get_model, get_loss, get_train_sampler
+from util.misc import get_model, get_loss, get_train_sampler, get_scheduler
 from models.postprocess import postprocess
 
 import warnings
@@ -55,12 +55,14 @@ def main():
 	# training
 	loss_func = get_loss(args, train_dataset.class_weights).to(primary_device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_lr)
+	scheduler = get_scheduler(args, optimizer)
 
 	logger = Logger()
 	max_score = 0
 
 	for epoch in range(1, args.epochs+1):
 		logger.print("Epoch {}".format(epoch))
+		scheduler.step()
 		train(model, train_loader, loss_func, optimizer, logger)
 		score = evaluate(model, val_loader, loss_func, logger)
 		logger.save()

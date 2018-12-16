@@ -8,11 +8,14 @@ class Args:
 	##############################
 
 	epochs = 30                     # DEFAULT 30 (int 1-99)
-	initial_lr = 1e-5               # DEFAULT 1e-5 (float)
 	batch_size = 16                 # DEFAULT 16 (int)
-	
+
 	arch = "inceptionv4"            # DEFAULT resnet152 (resnet50 | resnet152 | senet154 | inceptionv4)
 
+	initial_lr = 1e-5               # DEFAULT 1e-5 (float)
+	lr_schedule = None              # DEFAULT None (None | poly | exp | step | multistep | cosine)
+	lr_schedule_params = {}         # DEFAULT {} (dict)
+	
 	img_size = None                 # DEFAULT None (None | int 224-1024)
 	full_size = False               # DEFAULT False (bool)
 	use_external = False            # DEFAULT False (bool)
