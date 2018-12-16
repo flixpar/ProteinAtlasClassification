@@ -32,6 +32,9 @@ def main():
 	train_dataset = ProteinImageDataset(split="train", args=args,
 		transforms=args.train_augmentation, channels=args.img_channels, debug=False)
 
+	train_static_dataset = ProteinImageDataset(split="train", args=args,
+		transforms=None, channels=args.img_channels, debug=False)
+
 	val_dataset  = ProteinImageDataset(split="val", args=args,
 		transforms=None, channels=args.img_channels, debug=False, n_samples=args.n_val_samples)
 
@@ -44,7 +47,10 @@ def main():
 	train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=shuffle, sampler=train_sampler,
 		batch_size=args.batch_size, num_workers=args.workers, pin_memory=True)
 
-	val_loader   = torch.utils.data.DataLoader(val_dataset, shuffle=False, batch_size=1, 
+	train_static_loader = torch.utils.data.DataLoader(train_static_dataset, shuffle=False,
+		batch_size=1, num_workers=args.workers, pin_memory=True)
+
+	val_loader = torch.utils.data.DataLoader(val_dataset, shuffle=False, batch_size=1, 
 		num_workers=args.workers, pin_memory=True)
 
 	# model
@@ -64,7 +70,8 @@ def main():
 		logger.print("Epoch {}".format(epoch))
 		scheduler.step()
 		train(model, train_loader, loss_func, optimizer, logger)
-		score = evaluate(model, val_loader, loss_func, logger)
+		score = evaluate(model, val_loader, loss_func, logger, splitname="val")
+		evaluate(model, train_static_loader, loss_func, logger, splitname="train")
 		logger.save()
 		if score > max_score:
 			logger.save_model(model.module, epoch)
@@ -101,7 +108,7 @@ def train(model, train_loader, loss_func, optimizer, logger):
 			tqdm.tqdm.write("Train loss: {}".format(mean_loss))
 			logger.log("Train loss: {}".format(mean_loss))
 
-def evaluate(model, val_loader, loss_func, logger):
+def evaluate(model, loader, loss_func, logger, splitname="val"):
 	model.eval()
 
 	losses = []
@@ -109,7 +116,7 @@ def evaluate(model, val_loader, loss_func, logger):
 	targets = []
 
 	with torch.no_grad():
-		for i, (images, labels) in tqdm.tqdm(enumerate(val_loader), total=len(val_loader)):
+		for i, (images, labels) in tqdm.tqdm(enumerate(loader), total=len(loader)):
 
 			images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
 			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
@@ -143,7 +150,7 @@ def evaluate(model, val_loader, loss_func, logger):
 	logger.print("Per-Class F1:", f1_perclass)
 	logger.print()
 
-	logger.log_eval({"loss": loss, "acc": acc, "f1": f1})
+	logger.log_eval({f"{splitname}-loss": loss, f"{splitname}-acc": acc, f"{splitname}-f1": f1})
 	return f1
 
 if __name__ == "__main__":

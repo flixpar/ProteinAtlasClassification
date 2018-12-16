@@ -98,23 +98,55 @@ class Logger:
 				row = {"it": it, "loss": loss}
 				csvwriter.writerow(row)
 
-		with open(os.path.join(self.path, "eval.csv"), "w") as f:
-			csvwriter = csv.DictWriter(f, ["it"] + sorted(list(self.eval_metrics)))
+		train_metrics = [s.split('-')[-1] for s in self.eval_metrics if "train" in s]
+		val_metrics   = [s.split('-')[-1] for s in self.eval_metrics if "val" in s]
+
+		with open(os.path.join(self.path, "train_eval.csv"), "w") as f:
+			csvwriter = csv.DictWriter(f, ["it"] + sorted(train_metrics))
 			csvwriter.writeheader()
 			for it, score in enumerate(self.scores):
 				score["it"] = it
-				csvwriter.writerow(score)
+				csvwriter.writerow({k:v for k,v in score.items() if "train" in k})
+
+		with open(os.path.join(self.path, "eval.csv"), "w") as f:
+			csvwriter = csv.DictWriter(f, ["it"] + sorted(val_metrics))
+			csvwriter.writeheader()
+			for it, score in enumerate(self.scores):
+				score["it"] = it
+				csvwriter.writerow({k:v for k,v in score.items() if "val" in k})
+
+		plt.clf()
 
 		loss_data = pd.read_csv(os.path.join(self.path, "loss.csv"))
+		loss_means = loss_data.copy()
+		loss_means.loss = loss_means.loss.rolling(200, center=True, min_periods=1).mean()
 		lossplot = sns.lineplot(
 			x = "it",
 			y = "loss",
 			data = loss_data
 		)
+		lossplot = sns.lineplot(
+			x = "it",
+			y = "loss",
+			data = loss_means,
+			ax = lossplot.twinx()
+		)
 		lossplot.set_title("Train loss")
+		lossplot.ylim(0, 1)
 		lossplot.figure.savefig(os.path.join(self.path, "train_loss.png"))
 
 		plt.clf()
+
+		train_eval_data = pd.read_csv(os.path.join(self.path, "train_eval.csv"))
+		if set(["f1", "loss", "acc"]) <= set(train_eval_data.columns.values):
+			evalplot = train_eval_data.plot(x="it", y="loss", legend=False, color="b")
+			evalplot = train_eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=evalplot.twinx())
+			evalplot = train_eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=evalplot.twinx())
+			evalplot.figure.legend()
+			evalplot.grid(False)
+			evalplot.set_title("Evaluation on Train Set")
+			evalplot.figure.savefig(os.path.join(self.path, "train_eval.png"))
+			plt.clf()
 
 		eval_data = pd.read_csv(os.path.join(self.path, "eval.csv"))
 
@@ -122,12 +154,11 @@ class Logger:
 			return
 
 		evalplot = eval_data.plot(x="it", y="loss", legend=False, color="b")
-		small_ax = evalplot.twinx()
-		evalplot = eval_data.plot(x="it", y="f1", legend=False, color="r", ax=small_ax)
-		evalplot = eval_data.plot(x="it", y="acc", legend=False, color="g", ax=small_ax)
+		evalplot = eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=evalplot.twinx())
+		evalplot = eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=evalplot.twinx())
 		evalplot.figure.legend()
 		evalplot.grid(False)
-		evalplot.set_title("Evaluation Metrics")
+		evalplot.set_title("Evaluation on Validation Set")
 		evalplot.figure.savefig(os.path.join(self.path, "eval.png"))
 
 		plt.clf()
@@ -160,3 +191,4 @@ class Logger:
 		evallossplot.set_title("Eval Loss")
 		evallossplot.figure.savefig(os.path.join(self.path, "eval_loss.png"))
 
+		plt.clf()
