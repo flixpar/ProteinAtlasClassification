@@ -25,7 +25,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		self.debug = debug
 		self.n_classes = 28
 		self.resize = tfms.Resize(args.img_size, args.img_size) if args.img_size is not None else None
-		self.base_path = args.datapath if not args.full_size else args.largedatapath
+		self.base_path = args.primary_datapath if not args.full_size else args.fullsize_datapath
 		self.split_folder = os.path.join(self.base_path, "test" if self.split=="test" else "train")
 
 		# check for valid image mode
@@ -41,6 +41,19 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 
 			ids  = sorted(list(label_lookup.keys()))
 			lbls = [self.encode_label(label_lookup[k]) for k in ids]
+
+			# if using external data, add it
+			self.source_lookup = {i: "primary" for i in ids}
+			if args.use_external:
+				with open(os.path.join(args.external_datapath, 'external.csv'), 'r') as f:
+					csvreader = csv.reader(f)
+					external_data = list(csvreader)[1:]
+				external_label_lookup = {k:np.array(v.split(' ')) for k,v in external_data}
+				external_ids  = sorted(list(external_label_lookup.keys()))
+				external_lbls = [self.encode_label(external_label_lookup[k]) for k in external_ids]
+				self.source_lookup.update({i: "external" for i in external_ids})
+				ids = ids + external_ids
+				lbls = lbls + external_lbls
 
 			ids  = np.asarray(ids).reshape(-1, 1)
 			lbls = np.asarray(lbls)
@@ -83,19 +96,22 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			self.data = random.sample(self.data, n_samples)
 
 		# set the image normalization
-		if self.transforms is not None and isinstance(self.transforms, tfms.Compose):
-			for t in self.transforms:
-				if isinstance(t, tfms.Normalize):
-					t.mean = [0.054] * len(self.image_channels)
-					t.std  = [0.089] * len(self.image_channels)
+		self.primary_normalization = tfms.Normalize(
+			mean = [0.054] * len(self.image_channels),
+			std  = [0.089] * len(self.image_channels)
+		)
+		self.external_normalization = tfms.Normalize(
+			mean = [0.054] * len(self.image_channels),
+			std  = [0.089] * len(self.image_channels)
+		)
 
 		# debug
-		if self.debug:
-			self.data = self.data[:100]
+		if self.debug: self.data = self.data[:100]
 
 	def __getitem__(self, index):
 
 		example_id, label = self.data[index]
+		example_source = self.source_lookup[example_id]
 
 		ext = ".tif" if self.full_size else ".png"
 		if self.image_channels == "g":
@@ -122,8 +138,13 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			img = self.resize(image=img)["image"]
 		if self.transforms is not None:
 			img = self.transforms(image=img)["image"]
-		if len(img.shape) == 2:
-			img = img[:,:,np.newaxis]
+
+		if example_source == "primary":
+			img = self.primary_normalization(img)
+		else:
+			img = self.external_normalization(img)
+
+		if len(img.shape) == 2: img = img[:,:,np.newaxis]
 		img = torch.from_numpy(img.transpose((2, 0, 1)))
 
 		if self.split in ["train", "val"]:

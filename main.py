@@ -30,13 +30,10 @@ def main():
 	# datasets
 
 	train_dataset = ProteinImageDataset(split="train", args=args,
-		transforms=args.train_transforms, channels=args.img_channels, debug=False)
+		transforms=args.train_augmentation, channels=args.img_channels, debug=False)
 
 	val_dataset  = ProteinImageDataset(split="val", args=args,
-		transforms=args.test_transforms, channels=args.img_channels, debug=False, n_samples=args.n_val_samples)
-
-	test_dataset = ProteinImageDataset(split="test", args=args,
-		transforms=args.test_transforms, channels=args.img_channels, debug=False)
+		transforms=None, channels=args.img_channels, debug=False, n_samples=args.n_val_samples)
 
 	# sampling
 	train_sampler = get_train_sampler(args, train_dataset)
@@ -48,9 +45,6 @@ def main():
 		batch_size=args.batch_size, num_workers=args.workers, pin_memory=True)
 
 	val_loader   = torch.utils.data.DataLoader(val_dataset, shuffle=False, batch_size=1, 
-		num_workers=args.workers, pin_memory=True)
-	
-	test_loader  = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1,
 		num_workers=args.workers, pin_memory=True)
 
 	# model

@@ -44,8 +44,8 @@ def main():
 	args_module = importlib.util.module_from_spec(args_module_spec)
 	args_module_spec.loader.exec_module(args_module)
 	args = args_module.Args()
-	
-	test_transforms = args.test_transforms
+
+	test_transforms = None
 	test_dataset = ProteinImageDataset(split="test", args=args,
 		transforms=test_transforms, channels=args.img_channels, debug=False)
 	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1,
