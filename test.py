@@ -84,7 +84,7 @@ def test(model, test_loader):
 			output = output.cpu().numpy()
 
 			pred = postprocess(output)
-			pred = test_loader.dataset.from_onehot(pred)
+			pred = test_loader.dataset.decode_label(pred)
 
 			frame_id = frame_id[0]
 			preds.append((frame_id, pred))

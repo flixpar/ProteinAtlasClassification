@@ -40,7 +40,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			label_lookup = {k:np.array(v.split(' ')) for k,v in data}
 
 			ids  = sorted(list(label_lookup.keys()))
-			lbls = [self.to_onehot(label_lookup[k]) for k in ids]
+			lbls = [self.encode_label(label_lookup[k]) for k in ids]
 
 			ids  = np.asarray(ids).reshape(-1, 1)
 			lbls = np.asarray(lbls)
@@ -51,33 +51,38 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			train_ids = ids[train_inds].flatten().tolist()
 			val_ids   = ids[val_inds].flatten().tolist()
 
-		# construct dataset
-
+		# select data
 		if self.split == "train":
 			self.data = [(i, label_lookup[i]) for i in train_ids]
-
-			labels = [self.to_onehot(np.array(v.split(' '))) for _, v in data]
-			self.class_weights = np.sum(labels, axis=0)
-			self.class_weights = self.class_weights.max() / self.class_weights
-			self.class_weights = self.class_weights / self.n_classes
-			self.class_weights = torch.tensor(self.class_weights, dtype=torch.float32)
-
 		elif self.split == "val":
 			self.data = [(i, label_lookup[i]) for i in val_ids]
-
 		elif self.split == "test":
 			with open(os.path.join(self.base_path, 'sample_submission.csv'), 'r') as f:
 				lines = list(csv.reader(f))[1:]
 				test_ids = [line[0] for line in lines]
 			self.data = [(i, None) for i in test_ids]
 			self.test_ids = test_ids
-
 		else:
 			raise Exception("Invalid dataset split.")
 
+		# class and example weighting
+		if self.split == "train":
+
+			labels = [self.encode_label(np.array(v.split(' '))) for _, v in data]
+
+			self.class_weights = np.sum(labels, axis=0)
+			self.class_weights = self.class_weights.max() / self.class_weights
+			self.class_weights = self.class_weights / self.n_classes
+			self.class_weights = torch.tensor(self.class_weights, dtype=torch.float32)
+
+			self.example_weights = np.asarray(labels) * self.class_weights[np.newaxis, :]
+			self.example_weights = np.sum(self.example_weights, axis=1)
+
+		# subsampling
 		if n_samples is not None and n_samples < len(self.data):
 			self.data = random.sample(self.data, n_samples)
 
+		# set the image normalization
 		if self.transforms is not None and isinstance(self.transforms, tfms.Compose):
 			for t in self.transforms:
 				if isinstance(t, tfms.Normalize):
@@ -122,7 +127,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		img = torch.from_numpy(img.transpose((2, 0, 1)))
 
 		if self.split in ["train", "val"]:
-			label = self.to_onehot(label)
+			label = self.encode_label(label)
 			return img, label
 		else:
 			return img, example_id
@@ -130,12 +135,12 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 	def __len__(self):
 		return len(self.data)
 
-	def to_onehot(self, lbl):
+	def encode_label(self, lbl):
 		out = np.zeros(self.n_classes)
 		for i in lbl:
 			out[int(i)] = 1
 		return out
 
-	def from_onehot(self, lbl):
+	def decode_label(self, lbl):
 		return np.where(lbl.flatten() == 1)[0].tolist()
 
