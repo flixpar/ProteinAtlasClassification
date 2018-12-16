@@ -70,11 +70,9 @@ def main():
 			logger.save_model(model.module, epoch)
 			max_score = score
 
+	logger.save()
 	logger.print()
 	logger.print("Test")
-	test_results = test(model, test_loader)
-	logger.write_test_results(test_results, test_dataset.test_ids)
-	logger.save()
 	logger.save_model(model, "final")
 	logger.run_test("final")
 
@@ -147,26 +145,6 @@ def evaluate(model, val_loader, loss_func, logger):
 
 	logger.log_eval({"loss": loss, "acc": acc, "f1": f1})
 	return f1
-
-def test(model, test_loader):
-	model.eval()
-
-	preds = []
-	with torch.no_grad():
-		for i, (image, frame_id) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
-
-			image = image.to(primary_device, dtype=torch.float32, non_blocking=True)
-			output = model(image)
-			output = torch.sigmoid(output)
-			output = output.cpu().numpy()
-			
-			pred = postprocess(output)
-			pred = test_loader.dataset.decode_label(pred)
-
-			frame_id = frame_id[0]
-			preds.append((frame_id, pred))
-
-	return preds
 
 if __name__ == "__main__":
 	main()

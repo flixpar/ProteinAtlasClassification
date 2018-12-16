@@ -78,6 +78,7 @@ class Logger:
 
 	def run_test(self, epoch):
 		cmd = ["python3", "test.py", self.dt, epoch, "False"]
+		self.print(" ".join(cmd))
 		subprocess.run(cmd, shell=False)
 
 	def submit_kaggle(self):
@@ -85,6 +86,7 @@ class Logger:
 		msg = self.dt
 		cmd = ["kaggle", "competitions", "submit", "-c",
 			"human-protein-atlas-image-classification", "-f", pth, "-m", msg]
+		self.print(" ".join(cmd))
 		subprocess.run(cmd, shell=False)
 
 	def save(self):
