@@ -48,16 +48,16 @@ class Pretrained(nn.Module):
 		original_weights = original_state_dict["weight"]
 		s = original_weights.shape
 
+		mean_weights = original_weights.mean(dim=1).unsqueeze(dim=1)
+
 		if n_channels == 1:
-			weights = original_weights[:,0,:,:].unsqueeze(dim=1)
+			weights = mean_weights
 		elif n_channels == 2:
-			weights = original_weights[:,:2,:,:]
+			weights = mean_weights.repeat(1, 2, 1, 1)
 		elif n_channels == 3:
-			return
+			return layer
 		elif n_channels == 4:
-			weights = torch.Tensor().new_empty(size=(s[0], 4, s[2], s[3]))
-			weights[:,:3,:,:] = original_weights
-			weights[:, 3,:,:] = original_weights[:,0,:,:]
+			weights = mean_weights.repeat(1, 4, 1, 1)
 		else:
 			raise ValueError("Invalid number of input channels")
 

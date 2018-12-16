@@ -4,9 +4,17 @@ import torchvision
 
 class Resnet(nn.Module):
 
-	def __init__(self, n_classes=28, n_input_channels=3):
+	def __init__(self, layers=152, n_classes=28, n_input_channels=3):
 		super(Resnet, self).__init__()
-		base_model = torchvision.models.resnet152(pretrained=True)
+
+		if layers == 152:
+			base_model = torchvision.models.resnet152(pretrained=True)
+			features_size = 2048
+		elif layers == 50:
+			base_model = torchvision.models.resnet50(pretrained=True)
+			features_size = 512
+		else:
+			raise ValueError("Unsupported ResNet.")
 
 		if n_input_channels == 3:
 			conv1 = base_model.conv1
@@ -24,7 +32,7 @@ class Resnet(nn.Module):
 			base_model.layer4
 		)
 		self.pool = nn.AdaptiveAvgPool2d(1)
-		self.classifier = nn.Linear(2048, n_classes)
+		self.classifier = nn.Linear(features_size, n_classes)
 
 		nn.init.kaiming_normal_(self.classifier.weight, mode='fan_out', nonlinearity='relu')
 
@@ -40,17 +48,17 @@ class Resnet(nn.Module):
 		original_state_dict = layer.state_dict()
 		original_weights = original_state_dict["weight"]
 		s = original_weights.shape
+
+		mean_weights = original_weights.mean(dim=1).unsqueeze(dim=1)
 		
 		if n_channels == 1:
-			weights = original_weights[:,0,:,:].unsqueeze(dim=1)
+			weights = mean_weights
 		elif n_channels == 2:
-			weights = original_weights[:,:2,:,:]
+			weights = mean_weights.repeat(1, 2, 1, 1)
 		elif n_channels == 3:
 			return layer
 		elif n_channels == 4:
-			weights = torch.Tensor().new_empty(size=(s[0], 4, s[2], s[3]))
-			weights[:,:3,:,:] = original_weights
-			weights[:, 3,:,:] = original_weights[:,0,:,:]
+			weights = mean_weights.repeat(1, 4, 1, 1)
 		else:
 			raise ValueError("Invalid number of input channels")
 

@@ -8,8 +8,9 @@ from models.loss import MultiLabelFocalLoss, FBetaLoss
 
 def get_model(args):
 	n_channels = len(set(args.img_channels))
-	if args.arch in ["resnet152"]:
-		model = Resnet(n_input_channels=n_channels)
+	if args.arch in ["resnet152", "resnet50"]:
+		layers = int(args.arch[6:])
+		model = Resnet(layers=layers, n_input_channels=n_channels)
 	elif args.arch in ["inceptionv4", "setnet154"]:
 		model = Pretrained(args.arch, n_input_channels=n_channels)
 	else:

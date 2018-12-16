@@ -15,7 +15,7 @@ class Args:
 	img_size = None                 # DEFAULT None (None | int 224-1024)
 	full_size = False               # DEFAULT False (bool)
 	img_channels = "rgby"           # DEFAULT g (str {r, g, b, y})
-	arch = "inceptionv4"            # DEFAULT resnet152 (resnet152 | senet154 | inceptionv4)
+	arch = "inceptionv4"            # DEFAULT resnet152 (resnet50 | resnet152 | senet154 | inceptionv4)
 
 	loss = "softmargin"             # DEFAULT softmargin (softmargin | focal | fbeta)
 	focal_gamma = 2                 # DEFAULT 2 (float)
@@ -38,9 +38,8 @@ class Args:
 		tfms.HorizontalFlip(p=0.5),
 		tfms.VerticalFlip(p=0.5),
 		tfms.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=20),
-		tfms.RandomBrightness(),
-		tfms.RandomContrast(),
-		tfms.GaussNoise(var_limit=(3, 10)),
+		tfms.RandomBrightnessContrast(),
+		tfms.GaussNoise(var_limit=(2, 8)),
 		tfms.Normalize(mean=[], std=[])
 	])
 	test_transforms = tfms.Compose([
@@ -57,5 +56,6 @@ class Args:
 	########## Paths #############
 	##############################
 
-	datapath = "/home/felix/projects/class/deeplearning/final/data/"
-	largedatapath = "/mnt/data2/atlas/"
+	primary_datapath  = ""
+	fullsize_datapath = ""
+	external_datapath = ""
