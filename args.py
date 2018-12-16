@@ -18,9 +18,11 @@ class Args:
 	arch = "inceptionv4"            # DEFAULT resnet152 (resnet152 | senet154 | inceptionv4)
 
 	loss = "softmargin"             # DEFAULT softmargin (softmargin | focal | fbeta)
-	weight_mode = "inverse"         # DEFAULT inverse ({inverse, sqrt} | None)
 	focal_gamma = 2                 # DEFAULT 2 (float)
 	fbeta = 1                       # DEFAULT 1 (float)
+
+	weight_mode = "inverse"         # DEFAULT inverse ({inverse, sqrt} | None)
+	weight_method = "loss"          # DEFAULT loss (loss | sampling | None)
 
 	device_ids = [0,1]              # DEFAULT [0,] (list int 0-8)
 	workers = 8                     # DEFAULT 8 (int 0-16)
@@ -35,15 +37,14 @@ class Args:
 	train_transforms = tfms.Compose([
 		tfms.HorizontalFlip(p=0.5),
 		tfms.VerticalFlip(p=0.5),
-		tfms.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30),
-		tfms.GridDistortion(),
+		tfms.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=20),
 		tfms.RandomBrightness(),
 		tfms.RandomContrast(),
-		tfms.GaussNoise(var_limit=(5, 15)),
-		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
+		tfms.GaussNoise(var_limit=(3, 10)),
+		tfms.Normalize(mean=[], std=[])
 	])
 	test_transforms = tfms.Compose([
-		tfms.Normalize(mean=[0.054, 0.054, 0.054], std=[0.089, 0.089, 0.089])
+		tfms.Normalize(mean=[], std=[])
 	])
 
 	##############################
