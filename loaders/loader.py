@@ -43,7 +43,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			lbls = [self.encode_label(label_lookup[k]) for k in ids]
 
 			# if using external data, add it
-			self.source_lookup = {i: "primary" for i in ids}
+			self.source_lookup = {i: "trainval" for i in ids}
 			if args.use_external:
 				with open(os.path.join(args.external_datapath, 'external.csv'), 'r') as f:
 					csvreader = csv.reader(f)
@@ -75,6 +75,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 				test_ids = [line[0] for line in lines]
 			self.data = [(i, None) for i in test_ids]
 			self.test_ids = test_ids
+			self.source_lookup = {i: "test" for i in test_ids}
 		else:
 			raise Exception("Invalid dataset split.")
 
