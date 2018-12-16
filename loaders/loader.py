@@ -96,14 +96,28 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			self.data = random.sample(self.data, n_samples)
 
 		# set the image normalization
-		self.primary_normalization = tfms.Normalize(
-			mean = [0.054] * len(self.image_channels),
-			std  = [0.089] * len(self.image_channels)
-		)
-		self.external_normalization = tfms.Normalize(
-			mean = [0.054] * len(self.image_channels),
-			std  = [0.089] * len(self.image_channels)
-		)
+		p_mean = [0.08033423981012082, 0.05155526791740866,  0.05359709020876417,  0.0811968791288488]
+		p_std  = [0.1313705843029108,  0.08728413305330673,  0.13922084421796302,  0.12760922364487468]
+		t_mean = [0.05860568283679439, 0.04606191081626742,  0.03982708801568723,  0.06027994646558575]
+		t_std  = [0.10238559670323068, 0.08069846376704155,  0.10501834094962233,  0.09908335311368136]
+		e_mean = [0.03775239471734739, 0.04191453443041034,  0.007705539179783242, 0.0942332991656135]
+		e_std  = [0.05167756366610396, 0.061291035726105815, 0.019559849511340346, 0.13389048820718571]
+		if self.image_channels == "g":
+			p_mean, p_std = p_mean[2], p_std[2]
+			t_mean, t_std = t_mean[2], t_std[2]
+			e_mean, e_std = e_mean[2], e_std[2]
+		if self.image_channels == "rgb":
+			p_mean, p_std = p_mean[:3], p_std[:3]
+			t_mean, t_std = t_mean[:3], t_std[:3]
+			e_mean, e_std = e_mean[:3], e_std[:3]
+		if self.image_channels == "rgby":
+			pass
+		else:
+			raise NotImplementedError("Unsupported image channels selection.")
+
+		self.primary_normalization  = tfms.Normalize(mean=p_mean, std=p_std)
+		self.test_normalization     = tfms.Normalize(mean=t_mean, std=t_std)
+		self.external_normalization = tfms.Normalize(mean=e_mean, std=e_std)
 
 		# debug
 		if self.debug: self.data = self.data[:100]
@@ -139,8 +153,10 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		if self.transforms is not None:
 			img = self.transforms(image=img)["image"]
 
-		if example_source == "primary":
+		if example_source == "trainval":
 			img = self.primary_normalization(img)
+		elif example_source == "test":
+			img = self.test_normalization(img)
 		else:
 			img = self.external_normalization(img)
 
