@@ -50,6 +50,8 @@ class Args:
 	##############################
 
 	test_augmentation = [         # DEFAULT [] (list)
+		tfms.HorizontalFlip(p=1.0),
+		tfms.VerticalFlip(p=1.0),
 	]
 	postprocessing    = [         # DEFAULT [] (list {max3, max4, min1, 9+10, crf, uniform_thresh, perclass_thresh})
 		"max3", "9+10", "min1",

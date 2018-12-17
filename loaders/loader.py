@@ -54,6 +54,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 				external_ids  = sorted(list(external_label_lookup.keys()))
 				external_lbls = [self.encode_label(external_label_lookup[k]) for k in external_ids]
 				self.source_lookup.update({i: "external" for i in external_ids})
+				label_lookup.update(external_label_lookup)
 				ids = ids + external_ids
 				lbls = lbls + external_lbls
 
@@ -112,11 +113,11 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			p_mean, p_std = p_mean[2], p_std[2]
 			t_mean, t_std = t_mean[2], t_std[2]
 			e_mean, e_std = e_mean[2], e_std[2]
-		if self.image_channels == "rgb":
+		elif self.image_channels == "rgb":
 			p_mean, p_std = p_mean[:3], p_std[:3]
 			t_mean, t_std = t_mean[:3], t_std[:3]
 			e_mean, e_std = e_mean[:3], e_std[:3]
-		if self.image_channels == "rgby":
+		elif self.image_channels == "rgby":
 			pass
 		else:
 			raise NotImplementedError("Unsupported image channels selection.")
@@ -155,6 +156,13 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 
 		else:
 			raise NotImplementedError("Image channel mode not yet supported.")
+
+		if img is None:
+			img = np.zeros((512, 512), dtype=np.uint8)
+			img = np.stack([img]*len(self.image_channels), axis=-1).squeeze()
+		if len(img.shape) == 1:
+			img = np.zeros((512, 512), dtype=np.uint8)
+			img = np.stack([img]*len(self.image_channels), axis=-1).squeeze()
 
 		if self.resize is not None:
 			img = self.resize(image=img)["image"]
