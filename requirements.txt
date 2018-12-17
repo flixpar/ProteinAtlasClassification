@@ -12,3 +12,4 @@ matplotlib
 seaborn
 iterative-stratification
 pystruct
+cvxopt
