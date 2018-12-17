@@ -10,6 +10,12 @@ from pystruct.models import MultiLabelClf
 
 def postprocess(args, preds, targets=None, threshold=None):
 
+	preds = np.asarray(preds)
+	targets = np.asarray(targets) if targets is not None else None
+
+	if len(preds.shape) != 2: preds = preds.squeeze()
+	if targets is not None and len(targets.shape) != 2: targets = targets.squeeze()
+
 	if targets is not None:
 		if "uniform_thresh" in args.postprocessing:
 			threshold = optimize_uniform_threshold(preds, targets)
@@ -26,21 +32,22 @@ def postprocess(args, preds, targets=None, threshold=None):
 			threshold = threshold.reshape(1, -1)
 		elif isinstance(threshold, list):
 			threshold = np.asarray(threshold).reshape(1, -1)
+		else:
+			threshold = np.full((1, preds.shape[1]), 0.5)
 
 	if "max3" in args.postprocessing:
-		num_true = (preds > threshold).astype(np.int).sum()
-		if num_true > 3:
-			mask = np.argsort(preds, axis=1)[:-3]
-			preds[mask] = 0
+		example_mask = (preds > threshold).astype(np.int).sum(axis=1) > 3
+		class_mask = np.argsort(preds, axis=1)[:, :-3]
+		preds[class_mask][example_mask] = 0
+
 	elif "max4" in args.postprocessing:
-		num_true = (preds > threshold).astype(np.int).sum()
-		if num_true > 4:
-			mask = np.argsort(preds, axis=1)[:-4]
-			preds[mask] = 0
+		example_mask = (preds > threshold).astype(np.int).sum(axis=1) > 4
+		class_mask = np.argsort(preds, axis=1)[:, :-4]
+		preds[class_mask][example_mask] = 0
 
 	if "9+10" in args.postprocessing:
 		mask_9_10 = np.mean(preds[:, 9:11], axis=1)
-		mask_9_10 = mask_9_10 > np.mean(threshold[:, 9:11], axis=1)
+		mask_9_10 = mask_9_10 > np.mean(threshold[:, 9:11])
 		preds[mask_9_10, 9:11]  = 1
 
 	if "min1" in args.postprocessing:

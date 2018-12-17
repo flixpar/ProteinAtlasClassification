@@ -20,6 +20,10 @@ from models.postprocess import optimize_uniform_threshold, optimize_perclass_thr
 from util.logger import Logger
 from util.misc import get_model
 
+import warnings
+from sklearn.exceptions import UndefinedMetricWarning
+warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+
 def main():
 
 	if not len(sys.argv) == 4:

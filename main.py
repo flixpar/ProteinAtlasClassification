@@ -52,7 +52,7 @@ def main():
 	train_static_loader = torch.utils.data.DataLoader(train_static_dataset, shuffle=False,
 		batch_size=1, num_workers=args.workers, pin_memory=True)
 
-	val_loader = torch.utils.data.DataLoader(val_dataset, shuffle=False, batch_size=1, 
+	val_loader = torch.utils.data.DataLoader(val_dataset, shuffle=False, batch_size=1,
 		num_workers=args.workers, pin_memory=True)
 
 	# model
@@ -80,9 +80,9 @@ def main():
 			max_score = score
 
 	logger.save()
+	logger.save_model(model, "final")
 	logger.print()
 	logger.print("Test")
-	logger.save_model(model, "final")
 	logger.run_test("final")
 
 
@@ -124,7 +124,7 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
 
 			outputs = model(images)
-			loss = loss_func(outputs, labels).item()
+			loss = loss_func(outputs.mean(dim=0), labels).item()
 
 			pred = torch.sigmoid(outputs)
 			pred = pred.cpu().numpy()
@@ -150,7 +150,7 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 	loss = np.mean(losses)
 
 	logger.print()
-	logger.print("Eval")
+	logger.print("Eval - {}".format(splitname))
 	logger.print("Loss:", loss)
 	logger.print("Accuracy:", acc)
 	logger.print("Macro F1:", f1)

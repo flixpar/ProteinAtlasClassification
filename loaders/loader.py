@@ -28,6 +28,8 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		self.resize = tfms.Resize(args.img_size, args.img_size) if args.img_size is not None else None
 		self.base_path = args.primary_datapath if not args.full_size else args.fullsize_datapath
 		self.split_folder = os.path.join(self.base_path, "test" if self.split=="test" else "train")
+		self.n_samples = n_samples
+		if self.debug: self.n_samples = 100
 
 		# check for valid image mode
 		if not (set(self.image_channels) <= set("rgby")):
@@ -80,13 +82,18 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		else:
 			raise Exception("Invalid dataset split.")
 
+		# subsampling
+		if self.n_samples is not None and self.n_samples < len(self.data):
+			self.data = random.sample(self.data, self.n_samples)
+
 		# class and example weighting
 		if self.split == "train":
 
 			labels = [self.encode_label(l[1]) for l in self.data]
 
-			self.class_weights = np.sum(labels, axis=0)
-			self.class_weights = self.class_weights.max() / self.class_weights
+			self.class_weights = np.sum(labels, axis=0).astype(np.float32)
+			self.class_weights[self.class_weights == 0] = np.inf
+			self.class_weights = self.class_weights[self.class_weights != np.inf].max() / self.class_weights
 			self.class_weights = self.class_weights / self.n_classes
 
 			self.example_weights = np.asarray(labels) * self.class_weights[np.newaxis, :]
@@ -94,10 +101,6 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 
 			self.class_weights   = torch.tensor(self.class_weights, dtype=torch.float32)
 			self.example_weights = torch.tensor(self.example_weights, dtype=torch.float32)
-
-		# subsampling
-		if n_samples is not None and n_samples < len(self.data):
-			self.data = random.sample(self.data, n_samples)
 
 		# set the image normalization
 		p_mean = [0.08033423981012082, 0.05155526791740866,  0.05359709020876417,  0.0811968791288488]
@@ -122,9 +125,6 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		self.primary_normalization  = tfms.Normalize(mean=p_mean, std=p_std)
 		self.test_normalization     = tfms.Normalize(mean=t_mean, std=t_std)
 		self.external_normalization = tfms.Normalize(mean=e_mean, std=e_std)
-
-		# debug
-		if self.debug: self.data = self.data[:100]
 
 	def __getitem__(self, index):
 
@@ -162,7 +162,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		else: norm = self.external_normalization
 
 		if self.test_transforms is not None:
-			imgs = [norm(t(image=img)["image"]) for t in self.test_transforms]
+			imgs = [norm(image=t(image=img)["image"])["image"] for t in self.test_transforms]
 			imgs = np.asarray(imgs)
 			if len(imgs.shape) == 3: imgs = imgs[:,:,:,np.newaxis]
 			imgs = torch.from_numpy(imgs.transpose((0, 3, 1, 2)))
