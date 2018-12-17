@@ -34,7 +34,7 @@ def main():
 
 	train_static_dataset = ProteinImageDataset(split="train", args=args,
 		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False,
-		n_samples=args.n_val_samples)
+		n_samples=args.n_train_eval_samples)
 
 	val_dataset  = ProteinImageDataset(split="val", args=args,
 		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False,

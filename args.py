@@ -35,6 +35,7 @@ class Args:
 	log_freq = 5                    # DEFAULT 10 (int)
 	trainval_ratio = 0.90           # DEFAULT 0.9
 	n_val_samples = None            # DEFAULT None (int | None)
+	n_train_eval_samples = 1024     # DEFAULT 1024 (int | None)
 
 	train_augmentation = tfms.Compose([
 		tfms.HorizontalFlip(p=0.5),
