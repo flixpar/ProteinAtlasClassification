@@ -16,7 +16,7 @@ class Args:
 	lr_schedule = None              # DEFAULT None (None | poly | exp | step | multistep | cosine)
 	lr_schedule_params = {          # DEFAULT {} (dict)
 	}
-	
+
 	img_size = None                 # DEFAULT None (None | int 224-1024)
 	full_size = False               # DEFAULT False (bool)
 	use_external = False            # DEFAULT False (bool)
@@ -62,4 +62,3 @@ class Args:
 
 	primary_datapath  = ""
 	fullsize_datapath = ""
-	external_datapath = ""

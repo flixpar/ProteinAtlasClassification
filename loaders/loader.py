@@ -27,7 +27,6 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		self.n_classes = 28
 		self.resize = tfms.Resize(args.img_size, args.img_size) if args.img_size is not None else None
 		self.base_path = args.primary_datapath if not args.full_size else args.fullsize_datapath
-		self.split_folder = os.path.join(self.base_path, "test" if self.split=="test" else "train")
 		self.n_samples = n_samples
 		if self.debug: self.n_samples = 100
 
@@ -48,7 +47,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			# if using external data, add it
 			self.source_lookup = {i: "trainval" for i in ids}
 			if args.use_external:
-				with open(os.path.join(args.external_datapath, 'external.csv'), 'r') as f:
+				with open(os.path.join(args.primary_datapath, 'external.csv'), 'r') as f:
 					csvreader = csv.reader(f)
 					external_data = list(csvreader)[1:]
 				external_label_lookup = {k:np.array(v.split(' ')) for k,v in external_data}
@@ -131,22 +130,27 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		example_id, label = self.data[index]
 		example_source = self.source_lookup[example_id]
 
+		if example_source == "trainval": imgdir = "train"
+		elif example_source == "test": imgdir = "test"
+		else: imgdir = "external"
+		img_folder = os.path.join(self.base_path, imgdir)
+
 		ext = ".tif" if self.full_size else ".png"
 		if self.image_channels == "g":
-			fn = os.path.join(self.split_folder, example_id + "_green" + ext)
+			fn = os.path.join(img_folder, example_id + "_green" + ext)
 			img = cv2.imread(fn, cv2.IMREAD_GRAYSCALE)
 
 		elif set(self.image_channels) == set("rgb"):
-			r = cv2.imread(os.path.join(self.split_folder, example_id + "_red"   + ext), cv2.IMREAD_GRAYSCALE)
-			g = cv2.imread(os.path.join(self.split_folder, example_id + "_green" + ext), cv2.IMREAD_GRAYSCALE)
-			b = cv2.imread(os.path.join(self.split_folder, example_id + "_blue"  + ext), cv2.IMREAD_GRAYSCALE)
+			r = cv2.imread(os.path.join(img_folder, example_id + "_red"   + ext), cv2.IMREAD_GRAYSCALE)
+			g = cv2.imread(os.path.join(img_folder, example_id + "_green" + ext), cv2.IMREAD_GRAYSCALE)
+			b = cv2.imread(os.path.join(img_folder, example_id + "_blue"  + ext), cv2.IMREAD_GRAYSCALE)
 			img = np.stack([r, g, b], axis=-1)
 
 		elif set(self.image_channels) == set("rgby"):
-			r = cv2.imread(os.path.join(self.split_folder, example_id + "_red"    + ext), cv2.IMREAD_GRAYSCALE)
-			g = cv2.imread(os.path.join(self.split_folder, example_id + "_green"  + ext), cv2.IMREAD_GRAYSCALE)
-			b = cv2.imread(os.path.join(self.split_folder, example_id + "_blue"   + ext), cv2.IMREAD_GRAYSCALE)
-			y = cv2.imread(os.path.join(self.split_folder, example_id + "_yellow" + ext), cv2.IMREAD_GRAYSCALE)
+			r = cv2.imread(os.path.join(img_folder, example_id + "_red"    + ext), cv2.IMREAD_GRAYSCALE)
+			g = cv2.imread(os.path.join(img_folder, example_id + "_green"  + ext), cv2.IMREAD_GRAYSCALE)
+			b = cv2.imread(os.path.join(img_folder, example_id + "_blue"   + ext), cv2.IMREAD_GRAYSCALE)
+			y = cv2.imread(os.path.join(img_folder, example_id + "_yellow" + ext), cv2.IMREAD_GRAYSCALE)
 			img = np.stack([r, g, b, y], axis=-1)
 
 		else:
