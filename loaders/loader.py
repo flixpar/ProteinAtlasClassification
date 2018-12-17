@@ -17,9 +17,10 @@ from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 
 class ProteinImageDataset(torch.utils.data.Dataset):
 
-	def __init__(self, split, args, transforms=None, channels="g", debug=False, n_samples=None):
+	def __init__(self, split, args, transforms=None, test_transforms=None, channels="g", debug=False, n_samples=None):
 		self.split = split
 		self.transforms = transforms
+		self.test_transforms = test_transforms if test_transforms else None
 		self.image_channels = channels
 		self.full_size = args.full_size
 		self.debug = debug
@@ -154,15 +155,22 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		if self.transforms is not None:
 			img = self.transforms(image=img)["image"]
 
-		if example_source == "trainval":
-			img = self.primary_normalization(img)
-		elif example_source == "test":
-			img = self.test_normalization(img)
-		else:
-			img = self.external_normalization(img)
+		if example_source == "trainval": norm = self.primary_normalization
+		elif example_source == "test": norm = self.test_normalization
+		else: norm = self.external_normalization
 
+		if self.test_transforms is not None:
+			imgs = [norm(t(image=img)["image"]) for t in self.test_transforms]
+			imgs = np.asarray(imgs)
+			if len(imgs.shape) == 3: imgs = imgs[:,:,:,np.newaxis]
+			imgs = torch.from_numpy(imgs.transpose((0, 3, 1, 2)))
+
+		img = norm(img)
 		if len(img.shape) == 2: img = img[:,:,np.newaxis]
 		img = torch.from_numpy(img.transpose((2, 0, 1)))
+
+		if self.test_transforms is not None:
+			img = torch.cat((img.unsqueeze(0), imgs), dim=0)
 
 		if self.split in ["train", "val"]:
 			label = self.encode_label(label)

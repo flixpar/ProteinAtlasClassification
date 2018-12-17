@@ -33,10 +33,12 @@ def main():
 		transforms=args.train_augmentation, channels=args.img_channels, debug=False)
 
 	train_static_dataset = ProteinImageDataset(split="train", args=args,
-		transforms=None, channels=args.img_channels, debug=False)
+		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False,
+		n_samples=args.n_val_samples)
 
 	val_dataset  = ProteinImageDataset(split="val", args=args,
-		transforms=None, channels=args.img_channels, debug=False, n_samples=args.n_val_samples)
+		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False,
+		n_samples=args.n_val_samples)
 
 	# sampling
 	train_sampler = get_train_sampler(args, train_dataset)
@@ -118,8 +120,8 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 	with torch.no_grad():
 		for i, (images, labels) in tqdm.tqdm(enumerate(loader), total=len(loader)):
 
-			images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
-			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
+			images = images.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
+			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
 
 			outputs = model(images)
 			loss = loss_func(outputs, labels).item()
@@ -127,7 +129,11 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 			pred = torch.sigmoid(outputs)
 			pred = pred.cpu().numpy()
 
-			labels = labels.cpu().numpy().astype(np.int)
+			labels = labels.cpu().numpy().astype(np.int).squeeze()
+
+			if pred.shape[0] != 1:
+				pred = (0.5 * pred[0, :]) + (0.5 * pred[1:, :].mean(axis=0))
+				pred = pred[np.newaxis, :]
 
 			losses.append(loss)
 			preds.append(pred)

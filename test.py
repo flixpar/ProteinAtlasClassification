@@ -46,9 +46,8 @@ def main():
 	args_module_spec.loader.exec_module(args_module)
 	args = args_module.Args()
 
-	test_transforms = None
 	test_dataset = ProteinImageDataset(split="test", args=args,
-		transforms=test_transforms, channels=args.img_channels, debug=False)
+		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False)
 	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1,
 		num_workers=args.workers, pin_memory=True)
 
@@ -82,10 +81,14 @@ def test(args, model, test_loader, thresh):
 	with torch.no_grad():
 		for i, (image, frame_id) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
 
-			image = image.to(dtype=torch.float32).cuda(non_blocking=True)
+			image = image.to(dtype=torch.float32).cuda(non_blocking=True).squeeze(0)
 			output = model(image)
 			output = torch.sigmoid(output)
 			output = output.cpu().numpy()
+
+			if output.shape[0] != 1:
+				output = (0.5 * output[0, :]) + (0.5 * output[1:, :].mean(axis=0))
+				output = output[np.newaxis, :]
 
 			frame_id = frame_id[0]
 			outputs.append((frame_id, output))
