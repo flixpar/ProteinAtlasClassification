@@ -2,7 +2,7 @@ import os
 import errno
 from multiprocessing.pool import Pool
 from tqdm import tqdm
-import urllib2
+import urllib.request
 import requests
 import pandas as pd
 from PIL import Image
@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
 	# download csv
 	download_url = "https://storage.googleapis.com/kaggle-forum-message-attachments/432870/10816/HPAv18RBGY_wodpl.csv"
-	filedata = urllib2.urlopen(download_url).read()
+	filedata = urllib.request.urlopen(download_url).read()
 	with open(csv_path, "wb") as f:  
 		f.write(filedata)
 
