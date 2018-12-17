@@ -12,7 +12,7 @@ class Resnet(nn.Module):
 			features_size = 2048
 		elif layers == 50:
 			base_model = torchvision.models.resnet50(pretrained=True)
-			features_size = 512
+			features_size = 2048
 		else:
 			raise ValueError("Unsupported ResNet.")
 

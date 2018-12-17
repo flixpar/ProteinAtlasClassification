@@ -83,15 +83,17 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		# class and example weighting
 		if self.split == "train":
 
-			labels = [self.encode_label(np.array(v.split(' '))) for _, v in data]
+			labels = [self.encode_label(l[1]) for l in self.data]
 
 			self.class_weights = np.sum(labels, axis=0)
 			self.class_weights = self.class_weights.max() / self.class_weights
 			self.class_weights = self.class_weights / self.n_classes
-			self.class_weights = torch.tensor(self.class_weights, dtype=torch.float32)
 
 			self.example_weights = np.asarray(labels) * self.class_weights[np.newaxis, :]
 			self.example_weights = np.sum(self.example_weights, axis=1)
+
+			self.class_weights   = torch.tensor(self.class_weights, dtype=torch.float32)
+			self.example_weights = torch.tensor(self.example_weights, dtype=torch.float32)
 
 		# subsampling
 		if n_samples is not None and n_samples < len(self.data):
@@ -165,7 +167,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			if len(imgs.shape) == 3: imgs = imgs[:,:,:,np.newaxis]
 			imgs = torch.from_numpy(imgs.transpose((0, 3, 1, 2)))
 
-		img = norm(img)
+		img = norm(image=img)["image"]
 		if len(img.shape) == 2: img = img[:,:,np.newaxis]
 		img = torch.from_numpy(img.transpose((2, 0, 1)))
 
