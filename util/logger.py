@@ -105,15 +105,19 @@ class Logger:
 			csvwriter = csv.DictWriter(f, ["it"] + sorted(train_metrics))
 			csvwriter.writeheader()
 			for it, score in enumerate(self.scores):
-				score["it"] = it
-				csvwriter.writerow({k.split('-')[-1]:v for k,v in score.items() if "train" in k})
+				row = {k.split('-')[-1]:v for k,v in score.items() if "train" in k}
+				if not row: continue
+				row["it"] = it
+				csvwriter.writerow(row)
 
 		with open(os.path.join(self.path, "eval.csv"), "w") as f:
 			csvwriter = csv.DictWriter(f, ["it"] + sorted(val_metrics))
 			csvwriter.writeheader()
 			for it, score in enumerate(self.scores):
-				score["it"] = it
-				csvwriter.writerow({k.split('-')[-1]:v for k,v in score.items() if "val" in k})
+				row = {k.split('-')[-1]:v for k,v in score.items() if "val" in k}
+				if not row: continue
+				row["it"] = it
+				csvwriter.writerow(row)
 
 		plt.clf()
 
@@ -123,13 +127,14 @@ class Logger:
 		lossplot = sns.lineplot(
 			x = "it",
 			y = "loss",
-			data = loss_data
+			data = loss_data,
+			color = "b"
 		)
 		lossplot = sns.lineplot(
 			x = "it",
 			y = "loss",
 			data = loss_means,
-			ax = lossplot.twinx()
+			color = "orange"
 		)
 		lossplot.set_title("Train loss")
 		plt.ylim(0, 1)
@@ -140,8 +145,9 @@ class Logger:
 		train_eval_data = pd.read_csv(os.path.join(self.path, "train_eval.csv"))
 		if set(["f1", "loss", "acc"]) <= set(train_eval_data.columns.values):
 			evalplot = train_eval_data.plot(x="it", y="loss", legend=False, color="b")
-			evalplot = train_eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=evalplot.twinx())
-			evalplot = train_eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=evalplot.twinx())
+			secondary_axis = evalplot.twinx()
+			evalplot = train_eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=secondary_axis)
+			evalplot = train_eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=secondary_axis)
 			evalplot.figure.legend()
 			evalplot.grid(False)
 			evalplot.set_title("Evaluation on Train Set")
@@ -154,8 +160,9 @@ class Logger:
 			return
 
 		evalplot = eval_data.plot(x="it", y="loss", legend=False, color="b")
-		evalplot = eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=evalplot.twinx())
-		evalplot = eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=evalplot.twinx())
+		secondary_axis = evalplot.twinx()
+		evalplot = eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=secondary_axis)
+		evalplot = eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=secondary_axis)
 		evalplot.figure.legend()
 		evalplot.grid(False)
 		evalplot.set_title("Evaluation on Validation Set")
