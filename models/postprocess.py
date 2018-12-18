@@ -16,16 +16,7 @@ def postprocess(args, preds, targets=None, threshold=None):
 	if len(preds.shape) != 2: preds = preds.squeeze()
 	if targets is not None and len(targets.shape) != 2: targets = targets.squeeze()
 
-	if targets is not None:
-		if "uniform_thresh" in args.postprocessing:
-			threshold = optimize_uniform_threshold(preds, targets)
-			threshold = np.full((1, preds.shape[1]), threshold)
-		elif "perclass_thresh" in args.postprocessing:
-			threshold = optimize_perclass_threshold(preds, targets)
-			threshold = threshold.reshape(1, -1)
-		else:
-			threshold = np.full((1, preds.shape[1]), 0.5)
-	else:
+	if threshold is not None:
 		if isinstance(threshold, float):
 			threshold = np.full((1, preds.shape[1]), threshold)
 		elif isinstance(threshold, np.ndarray):
@@ -34,6 +25,10 @@ def postprocess(args, preds, targets=None, threshold=None):
 			threshold = np.asarray(threshold).reshape(1, -1)
 		else:
 			threshold = np.full((1, preds.shape[1]), 0.5)
+	elif targets is not None:
+		threshold = compute_threshold(args, preds, targets)
+	else:
+		threshold = np.full((1, preds.shape[1]), 0.5)
 
 	if "max3" in args.postprocessing:
 		example_mask = (preds > threshold).astype(np.int).sum(axis=1) > 3
@@ -71,6 +66,20 @@ def optimize_perclass_threshold(p_pred, y_true):
 	scores = np.asarray([metrics.f1_score(y_true, (p_pred>t), average=None) for t in searchspace])
 	best = searchspace[scores.argmax(axis=0)]
 	return best
+
+def compute_threshold(args, preds, targets):
+	preds, targets = np.asarray(preds), np.asarray(targets)
+	if len(preds.shape) != 2: preds = preds.squeeze()
+	if len(targets.shape) != 2: targets = targets.squeeze()
+	if "uniform_thresh" in args.postprocessing:
+		threshold = optimize_uniform_threshold(preds, targets)
+		threshold = np.full((1, preds.shape[1]), threshold)
+	elif "perclass_thresh" in args.postprocessing:
+		threshold = optimize_perclass_threshold(preds, targets)
+		threshold = threshold.reshape(1, -1)
+	else:
+		threshold = np.full((1, preds.shape[1]), 0.5)
+	return threshold
 
 def crf_postprocess(X_train, y_train, X_test, train_examples=2000):
 	clf = NSlackSSVM(MultiLabelClf(), verbose=1, n_jobs=-1, show_loss_every=1)

@@ -8,12 +8,9 @@ from torch import nn
 import torch.nn.functional as F
 
 from loaders.loader import ProteinImageDataset
-from models.resnet import Resnet
-from models.pretrained import Pretrained
-from models.loss import MultiLabelFocalLoss
 from util.logger import Logger
 from util.misc import get_model, get_loss, get_train_sampler, get_scheduler
-from models.postprocess import postprocess
+from models.postprocess import postprocess, compute_threshold
 
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
@@ -72,8 +69,8 @@ def main():
 		logger.print("Epoch {}".format(epoch))
 		scheduler.step()
 		train(model, train_loader, loss_func, optimizer, logger)
-		score = evaluate(model, val_loader, loss_func, logger, splitname="val")
-		evaluate(model, train_static_loader, loss_func, logger, splitname="train")
+		_, threshold = evaluate(model, train_static_loader, loss_func, logger, splitname="train")
+		score, _ = evaluate(model, val_loader, loss_func, logger, splitname="val", threshold=threshold)
 		logger.save()
 		if score > max_score:
 			logger.save_model(model.module, epoch)
@@ -110,7 +107,7 @@ def train(model, train_loader, loss_func, optimizer, logger):
 			tqdm.tqdm.write("Train loss: {}".format(mean_loss))
 			logger.log("Train loss: {}".format(mean_loss))
 
-def evaluate(model, loader, loss_func, logger, splitname="val"):
+def evaluate(model, loader, loss_func, logger, splitname="val", threshold=None):
 	model.eval()
 
 	losses = []
@@ -142,7 +139,8 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 	targets = np.array(targets).squeeze()
 	preds = np.array(preds).squeeze()
 
-	preds = postprocess(args, preds=preds, targets=targets)
+	if threshold is None: threshold = compute_threshold(args, preds, targets)
+	preds = postprocess(args, preds=preds, targets=targets, threshold=threshold)
 
 	acc = metrics.accuracy_score(targets, preds)
 	f1 = metrics.f1_score(targets, preds, average="macro")
@@ -158,7 +156,7 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 	logger.print()
 
 	logger.log_eval({f"{splitname}-loss": loss, f"{splitname}-acc": acc, f"{splitname}-f1": f1})
-	return f1
+	return f1, threshold
 
 if __name__ == "__main__":
 	main()
