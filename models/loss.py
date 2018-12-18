@@ -1,25 +1,25 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 
-class BinaryFocalLoss(nn.Module):
+class FocalLoss(nn.Module):
 
-	def __init__(self, gamma=2.0, weight=None, reduction="elementwise_mean"):
-		super(BinaryFocalLoss, self).__init__()
+	def __init__(self, gamma=2.0, weight=None, reduction="mean"):
+		super(FocalLoss, self).__init__()
 		if weight is not None: self.register_buffer('weight', weight)
 		self.weight = weight
 		self.reduction = reduction
 		self.gamma = gamma
-		self.eps = 1e-7
 
 	def forward(self, input, target):
 		
-		input = input.clamp(self.eps, 1.0-self.eps)
-		loss = - (target * torch.pow(1 - input, self.gamma) * torch.log(input)) - ((1 - target) * torch.pow(input, self.gamma) * torch.log(1 - input))
+		p = torch.sigmoid(input)
+		loss = - (target * ((1 - p) ** self.gamma) * F.logsigmoid(input)) - ((1 - target) * (p ** self.gamma) * F.logsigmoid(-input))
 
 		if self.weight is not None:
 			loss = torch.mul(loss, self.weight)
 
-		if self.reduction == "elementwise_mean":
+		if self.reduction == "mean":
 			loss = loss.mean(dim=0)
 		elif self.reduction == "sum":
 			loss = loss.sum(dim=0)
@@ -28,26 +28,24 @@ class BinaryFocalLoss(nn.Module):
 
 class MultiLabelFocalLoss(nn.Module):
 
-	def __init__(self, gamma=2.0, weight=None, reduction="elementwise_mean"):
+	def __init__(self, gamma=2.0, weight=None, reduction="mean"):
 		super(MultiLabelFocalLoss, self).__init__()
 		if weight is not None: self.register_buffer('weight', weight)
 		self.weight = weight
 		self.reduction = reduction
 		self.gamma = gamma
-		self.eps = 1e-7
 
 	def forward(self, input, target):
 
-		input = torch.sigmoid(input)
-		input = input.clamp(self.eps, 1.0-self.eps)
-		loss = - (target * torch.pow(1 - input, self.gamma) * torch.log(input)) - ((1 - target) * torch.pow(input, self.gamma) * torch.log(1 - input))
+		p = torch.sigmoid(input)
+		loss = - (target * ((1 - p) ** self.gamma) * F.logsigmoid(input)) - ((1 - target) * (p ** self.gamma) * F.logsigmoid(-input))
 
 		if self.weight is not None:
 			loss = torch.mul(loss, self.weight)
 
-		loss = torch.mean(loss, dim=1)
+		loss = torch.mean(loss, dim=-1)
 
-		if self.reduction == "elementwise_mean":
+		if self.reduction == "mean":
 			loss = loss.mean(dim=0)
 		elif self.reduction == "sum":
 			loss = loss.sum(dim=0)
@@ -56,11 +54,11 @@ class MultiLabelFocalLoss(nn.Module):
 
 class FBetaLoss(nn.Module):
 
-	def __init__(self, beta=1, soft=True, weight=None, reduction="elementwise_mean"):
+	def __init__(self, beta=1, soft=True, weight=None, reduction="mean"):
 		super(FBetaLoss, self).__init__()
 		if weight is not None: self.register_buffer('weight', weight)
 		self.weight = weight
-		if reduction != "elementwise_mean": raise NotImplementedError()
+		if reduction != "mean": raise NotImplementedError()
 		self.reduction = reduction
 		self.beta = beta
 		self.eps = 1e-7
