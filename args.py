@@ -9,6 +9,7 @@ class Args:
 
 	epochs = 30                     # DEFAULT 30 (int 1-99)
 	batch_size = 16                 # DEFAULT 16 (int)
+	weight_decay = 1e-4             # DEFAULT 0 (float)
 
 	arch = "inceptionv4"            # DEFAULT resnet152 (resnet50 | resnet152 | senet154 | inceptionv4)
 
