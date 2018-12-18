@@ -44,20 +44,6 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			ids  = sorted(list(label_lookup.keys()))
 			lbls = [self.encode_label(label_lookup[k]) for k in ids]
 
-			# if using external data, add it
-			self.source_lookup = {i: "trainval" for i in ids}
-			if args.use_external:
-				with open(os.path.join(args.primary_datapath, 'external.csv'), 'r') as f:
-					csvreader = csv.reader(f)
-					external_data = list(csvreader)[1:]
-				external_label_lookup = {k:np.array(v.split(' ')) for k,v in external_data}
-				external_ids  = sorted(list(external_label_lookup.keys()))
-				external_lbls = [self.encode_label(external_label_lookup[k]) for k in external_ids]
-				self.source_lookup.update({i: "external" for i in external_ids})
-				label_lookup.update(external_label_lookup)
-				ids = ids + external_ids
-				lbls = lbls + external_lbls
-
 			ids  = np.asarray(ids).reshape(-1, 1)
 			lbls = np.asarray(lbls)
 
@@ -66,6 +52,19 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 
 			train_ids = ids[train_inds].flatten().tolist()
 			val_ids   = ids[val_inds].flatten().tolist()
+
+			# if using external data, add it
+			self.source_lookup = {i: "trainval" for i in ids}
+			if args.use_external:
+				with open(os.path.join(args.primary_datapath, 'external.csv'), 'r') as f:
+					csvreader = csv.reader(f)
+					external_data = list(csvreader)[1:]
+				external_label_lookup = {k:np.array(v.split(' ')) for k,v in external_data}
+				external_ids  = sorted(list(external_label_lookup.keys()))
+				self.source_lookup.update({i: "external" for i in external_ids})
+				label_lookup.update(external_label_lookup)
+				ids = ids + external_ids
+				train_ids = train_ids + external_ids
 
 		# select data
 		if self.split == "train":
