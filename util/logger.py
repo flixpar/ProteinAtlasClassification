@@ -141,6 +141,7 @@ class Logger:
 		lossplot.figure.savefig(os.path.join(self.path, "train_loss.png"))
 
 		plt.clf()
+		plt.close()
 
 		train_eval_data = pd.read_csv(os.path.join(self.path, "train_eval.csv"))
 		if set(["f1", "loss", "acc"]) <= set(train_eval_data.columns.values):
@@ -153,6 +154,7 @@ class Logger:
 			evalplot.set_title("Evaluation on Train Set")
 			evalplot.figure.savefig(os.path.join(self.path, "train_eval.png"))
 			plt.clf()
+			plt.close()
 
 		eval_data = pd.read_csv(os.path.join(self.path, "eval.csv"))
 
@@ -169,6 +171,7 @@ class Logger:
 		evalplot.figure.savefig(os.path.join(self.path, "eval.png"))
 
 		plt.clf()
+		plt.close()
 
 		f1plot = sns.lineplot(
 			x = "it",
@@ -179,6 +182,7 @@ class Logger:
 		f1plot.figure.savefig(os.path.join(self.path, "eval_f1.png"))
 
 		plt.clf()
+		plt.close()
 
 		accplot = sns.lineplot(
 			x = "it",
@@ -189,6 +193,7 @@ class Logger:
 		accplot.figure.savefig(os.path.join(self.path, "eval_acc.png"))
 
 		plt.clf()
+		plt.close()
 
 		evallossplot = sns.lineplot(
 			x = "it",
@@ -199,3 +204,4 @@ class Logger:
 		evallossplot.figure.savefig(os.path.join(self.path, "eval_loss.png"))
 
 		plt.clf()
+		plt.close()

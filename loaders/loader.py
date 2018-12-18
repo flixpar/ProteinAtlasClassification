@@ -28,7 +28,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		self.resize = tfms.Resize(args.img_size, args.img_size) if args.img_size is not None else None
 		self.base_path = args.primary_datapath if not args.full_size else args.fullsize_datapath
 		self.n_samples = n_samples
-		if self.debug: self.n_samples = 100
+		if self.debug: self.n_samples = 128
 
 		# check for valid image mode
 		if not (set(self.image_channels) <= set("rgby")):
@@ -52,6 +52,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 
 			train_ids = ids[train_inds].flatten().tolist()
 			val_ids   = ids[val_inds].flatten().tolist()
+			ids       = ids.flatten().tolist()
 
 			# if using external data, add it
 			self.source_lookup = {i: "trainval" for i in ids}
