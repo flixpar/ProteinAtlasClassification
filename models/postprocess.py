@@ -51,10 +51,11 @@ def postprocess(args, preds, targets=None, threshold=None):
 		preds[mask_9_10, 9:11]  = 1
 
 	if "min1" in args.postprocessing:
-		if np.any(np.all(preds <= threshold, axis=1)):
-			mask = np.all(preds <= threshold, axis=1)
-			tops = np.argmax(preds, axis=1)
-			preds[tops][mask] = 1
+		mask = np.all(preds <= threshold, axis=1)
+		tops = np.argmax(preds, axis=1)
+		modified = preds.copy()
+		modified[np.arange(len(preds)), tops] = 1
+		preds[mask] = modified[mask]
 
 	preds = (preds > threshold).astype(np.int)
 	return preds
