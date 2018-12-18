@@ -109,7 +109,7 @@ def find_threshold(args, model):
 		return None
 	model.eval()
 	preds, targets = [], []
-	dataset  = ProteinImageDataset(split="val", args=args, channels=args.img_channels)
+	dataset  = ProteinImageDataset(split="trainval", args=args, channels=args.img_channels)
 	loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=1, 
 		num_workers=args.workers, pin_memory=True)
 	with torch.no_grad():

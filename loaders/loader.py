@@ -35,7 +35,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			raise ValueError("Invalid image channels selection.")
 
 		# split the training set into training and validation
-		if split in ["train", "val"]:
+		if split in ["train", "val", "trainval"]:
 			with open(os.path.join(self.base_path, 'train.csv'), 'r') as f:
 				csvreader = csv.reader(f)
 				data = list(csvreader)[1:]
@@ -72,6 +72,8 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			self.data = [(i, label_lookup[i]) for i in train_ids]
 		elif self.split == "val":
 			self.data = [(i, label_lookup[i]) for i in val_ids]
+		elif self.split == "trainval":
+			self.data = [(i, label_lookup[i]) for i in ids]
 		elif self.split == "test":
 			with open(os.path.join(self.base_path, 'sample_submission.csv'), 'r') as f:
 				lines = list(csv.reader(f))[1:]
@@ -87,7 +89,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 			self.data = random.sample(self.data, self.n_samples)
 
 		# class and example weighting
-		if self.split == "train":
+		if self.split == "train" or self.split == "trainval":
 
 			labels = [self.encode_label(l[1]) for l in self.data]
 
@@ -186,7 +188,7 @@ class ProteinImageDataset(torch.utils.data.Dataset):
 		if self.test_transforms is not None:
 			img = torch.cat((img.unsqueeze(0), imgs), dim=0)
 
-		if self.split in ["train", "val"]:
+		if self.split in ["train", "val", "trainval"]:
 			label = self.encode_label(label)
 			return img, label
 		else:

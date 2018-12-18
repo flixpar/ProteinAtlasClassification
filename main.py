@@ -29,14 +29,14 @@ def main():
 
 	# datasets
 
-	train_dataset = ProteinImageDataset(split="train", args=args,
+	train_dataset = ProteinImageDataset(split=args.train_split, args=args,
 		transforms=args.train_augmentation, channels=args.img_channels, debug=False)
 
-	train_static_dataset = ProteinImageDataset(split="train", args=args,
+	train_static_dataset = ProteinImageDataset(split=args.train_split, args=args,
 		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False,
 		n_samples=args.n_train_eval_samples)
 
-	val_dataset  = ProteinImageDataset(split="val", args=args,
+	val_dataset  = ProteinImageDataset(split=args.val_split, args=args,
 		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False,
 		n_samples=args.n_val_samples)
 

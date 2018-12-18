@@ -37,6 +37,9 @@ class Args:
 	n_val_samples = None            # DEFAULT None (int | None)
 	n_train_eval_samples = 1024     # DEFAULT 1024 (int | None)
 
+	train_split = "train"           # DEFAULT train (train | val | trainval)
+	val_split   = "val"             # DEFAULT val (train | val | trainval)
+
 	train_augmentation = tfms.Compose([
 		tfms.HorizontalFlip(p=0.5),
 		tfms.VerticalFlip(p=0.5),
