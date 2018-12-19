@@ -74,6 +74,7 @@ def main():
 
 	print("Find Threshold")
 	thresh = find_threshold(args, model)
+	print("Using threshold:", thresh)
 
 	print("Test")
 	test_results = test(args, model, test_loader, thresh)
