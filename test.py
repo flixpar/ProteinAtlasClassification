@@ -24,7 +24,7 @@ import warnings
 from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
-primary_device = torch.device("cuda:{}".format(args.device_ids[0]))
+primary_device = torch.device("cuda:0")
 
 def main():
 
@@ -54,7 +54,7 @@ def main():
 
 	test_dataset = ProteinImageDataset(split="test", args=args,
 		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False)
-	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size,
+	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size*4,
 		num_workers=args.workers, pin_memory=True)
 
 	model = get_model(args)
@@ -92,17 +92,19 @@ def test(args, model, test_loader, thresh):
 		for i, (image, frame_ids) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
 
 			if len(image.shape) == 5:
-				n_examples, n_copies, _, _, _ = image.shape
+				n_examples, n_copies, c, w, h = image.shape
+				image = image.view(n_examples*n_copies, c, w, h)
 			else:
 				n_examples, _, _, _ = image.shape
 				n_copies = 1
 
-			image = image.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
+			image = image.to(primary_device, dtype=torch.float32, non_blocking=True)
 			output = model(image)
 			output = torch.sigmoid(output)
 
 			if n_copies != 1:
 				output = torch.chunk(output, chunks=n_examples, dim=0)
+				output = torch.stack(output, dim=0)
 
 			output = output.cpu().numpy()
 
@@ -124,8 +126,8 @@ def find_threshold(args, model):
 		return None
 	model.eval()
 	preds, targets = [], []
-	dataset  = ProteinImageDataset(split="trainval", args=args, channels=args.img_channels)
-	loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=args.batch_size, 
+	dataset  = ProteinImageDataset(split="val", args=args, channels=args.img_channels)
+	loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=args.batch_size*4,
 		num_workers=args.workers, pin_memory=True)
 	with torch.no_grad():
 		for (images, labels) in tqdm.tqdm(loader, total=len(loader)):
