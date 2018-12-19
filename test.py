@@ -24,6 +24,8 @@ import warnings
 from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
+primary_device = torch.device("cuda:{}".format(args.device_ids[0]))
+
 def main():
 
 	if not len(sys.argv) == 4:
@@ -52,7 +54,7 @@ def main():
 
 	test_dataset = ProteinImageDataset(split="test", args=args,
 		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False)
-	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=1,
+	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size,
 		num_workers=args.workers, pin_memory=True)
 
 	model = get_model(args)
@@ -64,6 +66,9 @@ def main():
 		state_dict = temp_state
 	model.load_state_dict(state_dict)
 	model.cuda()
+
+	model = nn.DataParallel(model, device_ids=args.device_ids)
+	model.to(primary_device)
 
 	logger = Logger(path=folder_path)
 
@@ -83,19 +88,28 @@ def test(args, model, test_loader, thresh):
 
 	outputs = []
 	with torch.no_grad():
-		for i, (image, frame_id) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
+		for i, (image, frame_ids) in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
 
-			image = image.to(dtype=torch.float32).cuda(non_blocking=True).squeeze(0)
+			if len(image.shape) == 5:
+				n_examples, n_copies, _, _, _ = image.shape
+			else:
+				n_examples, _, _, _ = image.shape
+				n_copies = 1
+
+			image = image.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
 			output = model(image)
 			output = torch.sigmoid(output)
+
+			if n_copies != 1:
+				output = torch.chunk(output, chunks=n_examples, dim=0)
+
 			output = output.cpu().numpy()
 
-			if output.shape[0] != 1:
-				output = (0.5 * output[0, :]) + (0.5 * output[1:, :].mean(axis=0))
-				output = output[np.newaxis, :]
+			if n_copies != 1:
+				output = (0.5 * output[:, 0, :]) + (0.5 * output[:, 1:, :].mean(axis=1))
 
-			frame_id = frame_id[0]
-			outputs.append((frame_id, output))
+			output = list(zip(frame_ids, output))
+			outputs.extend(output)
 
 	preds = [p[1] for p in outputs]
 	preds = postprocess(args, preds=preds, threshold=thresh)
@@ -110,15 +124,15 @@ def find_threshold(args, model):
 	model.eval()
 	preds, targets = [], []
 	dataset  = ProteinImageDataset(split="trainval", args=args, channels=args.img_channels)
-	loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=1, 
+	loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=args.batch_size, 
 		num_workers=args.workers, pin_memory=True)
 	with torch.no_grad():
 		for (images, labels) in tqdm.tqdm(loader, total=len(loader)):
-			images = images.to(dtype=torch.float32).cuda(non_blocking=True)
-			pred = torch.sigmoid(model(images)).cpu().numpy()
-			labels = labels.cpu().numpy().astype(np.int)
-			preds.append(pred)
-			targets.append(labels)
+			images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
+			pred = torch.sigmoid(model(images)).cpu().numpy().tolist()
+			labels = labels.cpu().numpy().astype(np.int).tolist()
+			preds.extend(pred)
+			targets.extend(labels)
 	targets = np.array(targets).squeeze()
 	preds = np.array(preds).squeeze()
 	if "uniform_thresh" in args.postprocessing:
